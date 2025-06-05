@@ -1,32 +1,32 @@
-# runtime-crypter
-Simple PE runtime-crypter
-
+# Simple PE runtime-crypter
 
 # How it works?
-App takes a path to your .exe (payload) as the first argument and does following steps:
-1) reads payload pointed by PATH
-2) encrypts it by using __ algorithm
-3) generates new C-file "stub + encrypted payload" and compiles it into completed .exe. So that in your PATH will be generated new wrapped binary (.exe). 
+Shortly - we encrypt our PE (f.e. .exe file), then we put it into our pre-compiled stub, which has algorithm to both decrypting and running some code from .exe . So in the end it is immposible to find out what your.exe does by using static analysis and hard to deal with by debugging it and by using dynamic analysis.
 
-# step-by-step development
-1) Set environment. Compiler is x86_64-w64-mingw32-gcc. 
-Also build and locate in Project Directory test.exe 
+#### Building
+```
+x86_64-w64-mingw32-gcc stub.c salsa20.c -o stub.exe -lkernel32 && x86_64-w64-mingw32-gcc builder.c salsa20.c -o builder.exe -lkernel32 
+```
 
-2) builder.c
-takes one argument - string path
-opens and reads file as bytes array
-takes the key and with algoritm in the loop encrypts every byte
-saves encrypted bytes in temp_payload.h
-
-3) stub.c
-takes externs from temp_payload.h
-allocates memory for exec
-decrypts bytes
-run exec
-
-4) builder.c 
-after written temp payload and saved stub copy - 
-calls compiler which builds everything and gives .exe
+#### Using
+```
+./builder.exe your.exe  
+```
 
 
-salsa20 is custom implementation of salsa20 without security against side-channel attacks, repeatable nonces or keys. 
+# Security Notes
+Here salsa20 is custom implementation of salsa20 without security against side-channel attacks, repeatable nonces or keys.
+Key and nonce are both constant.
+There is no obfuscation of stub. 
+
+# Possible "To improve"
+
+1) Make salsa20 more safe (probably to use existing salsa20 code)
+2) Make it possible to use your key and nonce for encrypting/decrypting, like
+```
+./builder.exe pathto.exe key nonce
+```
+3) Make auto-building of project, without need to compile two files
+4) Implement obfuscation (custom or by using existing tools?)
+5) Improve code structure, cause now it is little bit too complex
+6) Make support of 32bit systems 
