@@ -49,7 +49,7 @@ static void salsa20_block(uint32_t output[16], const uint32_t input[16]) {
 
 static const uint8_t sigma[16] = "expand 32-byte k";
 
-void salsa20_encrypt(
+void salsa20_crypt(
     uint8_t *data, uint32_t length,
     const uint8_t key[32],
     const uint8_t nonce[8],
