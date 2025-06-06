@@ -1,15 +1,18 @@
 #include "salsa20.h"
 
-static inline uint32_t rotl(uint32_t x, int n) {
+static inline uint32_t rotl(uint32_t x, int n)
+{
     return (x << n) | (x >> (32 - n));
 }
 
-static void salsa20_block(uint32_t output[16], const uint32_t input[16]) {
+static void salsa20_block(uint32_t output[16], const uint32_t input[16])
+{
     int i;
     uint32_t x[16];
     for (i = 0; i < 16; i++)
         x[i] = input[i];
-    for (i = 0; i < 10; i++) { // 20 rounds: 2 per loop
+    for (i = 0; i < 10; i++)
+    {   // 20 rounds: 2 per loop
         x[ 4] ^= rotl(x[ 0] + x[12], 7);
         x[ 8] ^= rotl(x[ 4] + x[ 0], 9);
         x[12] ^= rotl(x[ 8] + x[ 4],13);
@@ -78,10 +81,12 @@ void salsa20_crypt(
     state[14] = ((uint32_t)key[28])  | ((uint32_t)key[29] << 8)  | ((uint32_t)key[30] << 16)  | ((uint32_t)key[31] << 24);
     state[15] = ((uint32_t)sigma[12]) | ((uint32_t)sigma[13] << 8) | ((uint32_t)sigma[14] << 16) | ((uint32_t)sigma[15] << 24);
 
-    for (i = 0; i < length; i += 64, counter++) {
+    for (i = 0; i < length; i += 64, counter++)
+    {
         state[8] = counter;
         salsa20_block(keystream, state);
-        for (j = 0; j < 64 && i + j < length; j++) {
+        for (j = 0; j < 64 && i + j < length; j++)
+        {
             ((uint8_t*)data)[i + j] ^= ((uint8_t*)keystream)[j];
         }
     }

