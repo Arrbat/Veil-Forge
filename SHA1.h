@@ -161,11 +161,11 @@ void SHA1(const unsigned char *data, size_t size, unsigned char hash[]) {
 	SHA1_Final(&ctx, hash);
 }
 
-//needs another values
+// this is not safe, but I use LCG for simplicity
 unsigned long lcg_rand(unsigned long *state) {
-    const unsigned long a = 16525;
-    const unsigned long c = 10223;
-    const unsigned long m = 429496; 
+    const unsigned long a = 165235;
+    const unsigned long c = 102243;
+    const unsigned long m = 47294996; 
 
     *state = (*state * a + c) % m;
     return *state;

