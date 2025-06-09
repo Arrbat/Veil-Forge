@@ -10,32 +10,24 @@ Shortly - we encrypt our PE (f.e. .exe file), then we put it into our pre-compil
 
 #### Building
 ```
-x86_64-w64-mingw32-gcc stub.c salsa20.c -o stub.exe -lkernel32 && x86_64-w64-mingw32-gcc builder.c salsa20.c -o builder.exe -lkernel32 
+./build.bat
 ```
 
 #### Using
 ```
-./builder.exe your.exe KEY64_IN_HEX_FORMAT NONCE16_IN_HEX_FORMAT 
+./builder.exe your.exe KEY64_IN_HEX_FORMAT NONCE24_IN_HEX_FORMAT 
 ```
 
 f.e. (key and nonce are not randomized):
 ```
-./builder.exe test.exe 00112233445566778899AABBCCDDEEFF00112233445566778899AABBCCDDEEFF AABBCCDDEEFF1122
+./builder.exe tests/test.exe 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef 0123456789abcdef0123456789abcdef0123456789abcdef
 ```
 
 # Security Notes
 
-Here salsa20 is custom implementation of salsa20, so it might be insecure, specially against side-channel attacks.
+Project uses ChaCha20 algorithm for both ecryption/decryption and obfuscation/deobfuscation, SHA256 for hashing.
 
 Key and nonce **MUST BE** provided by user; without key or nonce app will not even start. Use some web services to generate secure key and nonce. Also, **never** use the same key or/and nonce that you have used previously in another or the same application.
-
-Counter in salsa20 is constant. With secure key and nonce this is not a very big problem, but is makes algorithm more predictable
-
-This project uses LCG generator which is not secure, but for simplicity I use that one.
-
-Also there is SHA1 algorithm, which is worse then SHA256 f.e. . But SHA1 needs much less code and is simpler for understanding.
-
-There is modified XOR (de)obfuscation algorithm, which use result of LCG (and LCG uses hash of payload as a seed).
 
 It may be noted that there is very very basic anti-debugger technique.
 
@@ -47,70 +39,45 @@ Project was tested, compiled and run on Windows 11 (v.23H2), with CPU from AMD64
 If everything is okay you should see something like that (example with test.exe):
 
 ```
-PS C:\Users\home\Documents\PROJECT\runtime-crypter> **x86_64-w64-mingw32-gcc stub.c salsa20.c -o stub.exe -lkernel32**
+./build.bat                    
 
-PS C:\Users\home\Documents\PROJECT\runtime-crypter> **x86_64-w64-mingw32-gcc builder.c salsa20.c -o builder.exe -lkernel32**
+./builder.exe tests/test.exe 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef 0123456789abcdef0123456789abcdef0123456789abcdef
 
-PS C:\Users\home\Documents\PROJECT\runtime-crypter> **./builder.exe test.exe 00112233445566778899AABBCCDDEEFF00112233445566778899AABBCCDDEEFF AABBCCDDEEFF1122**
+Checking input arguments...
 
-Checking input arguments... Success
+Arguments are valid.
 
-Reading input file... Success
+Reading input file...
 
-Validate input file as x64 PE... Success
+Read file succesfully.
 
-Encrypting data... Success
+Validate input file as x64 PE...
 
-Copying stub template... Success
+File is valid x64 PE.
 
-Adding encrypted resource to final.exe... Success
+Encrypting data...
 
+Encryption ended successfully
+
+Copying stub template...
+
+Copying stub template ended succesfully
+
+Adding encrypted resource to final.exe...
+
+Added encrypted resources.
 
 Packing completed successfully! Output file: final.exe
 
-Press any key to continue . . . 
-
-PS C:\Users\home\Documents\PROJECT\runtime-crypter> ./final.exe 
+PS C:\Users\home\Documents\PROJECT\runtime-crypter> ./final.exe   
 
 Hello World
 
 ENCRYPTEEEEEEEEEEEEEEEEEEEEEEED
 
-PS C:\Users\home\Documents\PROJECT\runtime-crypter>
-```
-
-Also I tested it with larger game (Mindustry, java programming language). Here I renamed final.exe into Mindustry.exe , because it expects some configs etc. and with another name it does not work.
+PS C:\Users\home\Documents\PROJECT\runtime-crypter> 
 
 ```
-PS C:\Users\home\Documents\PROJECT\runtime-crypter> ./builder.exe Mindustry.exe 00112233445566778899AABBCCDDEEFF00112233445566778899AABBCCDDEEFF AABBCCDDEEFF1122
-
-*Here is success message; after that i renamed final.exe into expected Mindustry.exe*
-
-PS C:\Users\home\Documents\PROJECT\runtime-crypter> ./Mindustry.exe
-
-[I] [Core] Initialized SDL v2.0.20
-
-[I] [Audio] Initialized SoLoud 202409 using MiniAudio at 44100hz / 441 samples / 2 channels
-
-[I] [GL] Version: OpenGL 4.6.0 / ATI Technologies Inc. / AMD Radeon RX 7600S
-
-[I] [GL] Max texture size: 16384
-
-[I] [GL] Using OpenGL 3 context.
-
-[I] [JAVA] Version: 23
-
-[I] [RAM] Available: 3.9 GB
-
-[I] [Mindustry] Version: 149
-
-[I] Total time to load: 2353ms
-
-[I] Fetched 49 community servers.
-```
-
-GUI was launched and it did not crash. 
-
 ---
 
 If you like this all, please - star my repository and also give me feedback if you have some.
