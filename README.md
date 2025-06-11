@@ -37,7 +37,11 @@ There is only one-line anti-debug technique.
 
 No anti-VM, another algorithms support, etc. 
 
-And the main part ** Antivirus/Anti-malware software will detect the stub with your payload with the very high possibility**. For example Windows Defender thinks that this is trojan and tries to delete .exe .
+And the main part **Antivirus/Anti-malware software will detect the stub with your payload with the very high possibility**. For example Windows Defender thinks that this is trojan and tries to delete .exe . 
+
+![image](https://github.com/user-attachments/assets/0ab575b2-6e6f-4b7e-b56a-e1be0db81131)
+
+`I allowed the file, in other case it would be deleted`
 
 # Testing Notes
 Project was tested, compiled and run on Windows 11 (v.23H2), with CPU from AMD64.
