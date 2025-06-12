@@ -1,6 +1,7 @@
 MIT License
 
 Copyright (c) 2025 Arrbat - (https://github.com/Arrbat/)
+Copyright (c) 2025 Arrbat - (https://github.com/Arrbat/)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -23,9 +24,11 @@ SOFTWARE.
 ---
 
 Portions of this project are derived from Will Glozer - (https://github.com/wg/c20p1305?tab=MIT-1-ov-file) , who uses MIT license
+Portions of this project are derived from Will Glozer - (https://github.com/wg/c20p1305?tab=MIT-1-ov-file) , who uses MIT license
 
 ---
 
+Portions of this project are derived from IETF documents (e.g., RFC 6234(https://datatracker.ietf.org/doc/html/rfc6234)) 
 Portions of this project are derived from IETF documents (e.g., RFC 6234(https://datatracker.ietf.org/doc/html/rfc6234)) 
 and are subject to the Simplified BSD License as described in section 4.e
 of the IETF Trust Legal Provisions TLP 5.0 (https://trustee.ietf.org/documents/trust-legal-provisions/tlp-5/)): 
@@ -52,4 +55,6 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 The above BSD License is intended to be compatible with the Revised BSD License
+template published at BSD-3-Clause(https://opensource.org/licenses/BSD-3-Clause) .
+
 template published at BSD-3-Clause(https://opensource.org/licenses/BSD-3-Clause) .
