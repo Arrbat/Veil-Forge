@@ -1,47 +1,95 @@
-# PE runtime-crypter
+![Veil-Forge-Logo-Main](https://github.com/user-attachments/assets/b1bee8bc-b4f7-4933-a057-fbcd09b11b9b)
 
-# Disclaimer
-THIS PROJECT WAS NOT CREATED FOR MALWARE DEVELOPMENT. IT IS INTENDED SOLELY FOR LEGAL AND/OR EDUCATIONAL PURPOSES. THE AUTHOR DOES NOT CONDONE OR SUPPORT ANY ILLEGAL USAGE, INCLUDING BUT NOT LIMITED TO THE CREATION, DISTRIBUTION, OR EXECUTION OF MALICIOUS SOFTWARE. USE THIS TOOL RESPONSIBLY AND ONLY IN ENVIRONMENTS WHERE YOU HAVE EXPLICIT PERMISSION TO DO SO. 
 
-Also, the project is not absolutely secure in terms of cryptographic strength. The project as a whole was created as a demonstration of skills, knowledge in reverse engineering and programming, but I would be grateful if this project can help someone without breaking the law of your country. 
 
-# How it works?
-Shortly - we encrypt our PE (f.e. .exe file), then we put it into our pre-compiled stub, which has algorithm to both decrypting and running some code from .exe . So in the end it is immposible to find out what your.exe does by using static analysis and hard to  debug it and analyse dynamically.
 
-#### Building
-You need to have `x86_64-w64-mingw32-gcc`compiler installed. Also there is no support of 32bit system or another operating systems.
+# Veil-Forge
 
-```
+## Disclaimer
+
+**THIS PROJECT WAS NOT CREATED FOR MALWARE DEVELOPMENT.** 
+It is intended solely for **legal** and/or **educational** purposes.   The author does **not** condone or support any illegal usage, including but not limited to the creation, distribution, or execution of malicious software.   **Use this tool responsibly and only in environments where you have explicit permission to do so.** 
+
+This project is also **not guaranteed to be cryptographically secure**. It was created as a demonstration of programming and reverse engineering skills. However, if this tool can help someone without violating the laws of their country — that would be appreciated.
+
+## How It Works
+
+In short:  
+App encrypts a PE file (e.g. `.exe`) and embed it into a precompiled stub.  
+The stub contains logic to decrypt and execute the payload at runtime.  
+
+As a result, it becomes:
+- **Impossible to statically analyze** the original `.exe` without decryption.
+- **Difficult to debug and dynamically analyze**, due to runtime unpacking.
+
+
+## Building
+
+You will need the `x86_64-w64-mingw32-gcc` cross-compiler installed.
+
+> ❌ There is no support for 32-bit systems or non-Windows operating systems.
+
+To build the stub, run:
+
+```bash
 ./build.bat
 ```
 
-#### Using
-Key and nonce **MUST BE** provided by user; without key or nonce app will not even start. Use some web services to generate secure key and nonce. Also, **never** use the same key or/and nonce that you have used previously in another or the same application.
+## Usage
+
+Usage:
 
 ```
-./builder.exe your.exe KEY64_IN_HEX_FORMAT NONCE24_IN_HEX_FORMAT 
+./builder.exe your.exe KEY64_IN_HEX NONCE24_IN_HEX
 ```
 
-f.e. (key and nonce are not randomized):
+Example with test file:
+
 ```
-./builder.exe tests/test.exe 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef 0123456789abcdef0123456789abcdef0123456789abcdef
+./builder.exe tests/test.exe  0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef 0123456789abcdef0123456789abcdef0123456789abcdef
 ```
 
-# Security Notes
+A key and nonce must be provided by the user. Without both, the final application will not run.
+Use a secure method (such as a cryptographic key generator, you may find it on the web services) to generate a 64-byte key and 24-byte nonce, in hexadecimal format. Never reuse keys or nonces across different builds.
 
-Project uses AEAD - ChaCha20+Poly1305, SHA256, HKDF algorithms for encryption/decryption and obfuscation/deobfuscation.
 
-There is no stub obfuscation.
 
-There is only one-line anti-debug technique.
 
-No anti-VM, another algorithms support, etc. 
 
-And the main part **Antivirus/Anti-malware software will detect the stub with your payload with the very high possibility**. For example Windows Defender thinks that this is trojan and tries to delete .exe . 
+## Technical Notes
+The project uses the following algorithms:
 
-![image](https://github.com/user-attachments/assets/0ab575b2-6e6f-4b7e-b56a-e1be0db81131)
+    - AEAD ChaCha20-Poly1305
+    
+    - SHA-256
+    
+    - HKDF (HMAC-based key derivation)
+    
 
-`I allowed the file, in other case it would be deleted`
+Limitations:
+
+    No support for 32-bit systems
+
+    No Linux/macOS support
+
+    No anti-VM or sandbox detection
+
+    Stub does not use any obfuscation
+
+    Contains only a single-line anti-debugging technique
+
+    AV software (like Windows Defender) will almost certainly detect the stub as a trojan
+
+    ⚠️ Antivirus software may flag or delete the generated executable.
+    You must manually allow the file if testing in Windows. 
+
+![453845503-0ab575b2-6e6f-4b7e-b56a-e1be0db81131](https://github.com/user-attachments/assets/d0080941-d532-4ca8-a13c-06eedca9511e)
+
+
+
+
+
+
 
 # Testing Notes
 Project was tested, compiled and run on Windows 11 (v.23H2), with CPU from AMD64.
@@ -50,7 +98,8 @@ If everything is okay you should see something like that (example with test.exe)
 
 ```
 ./build.bat                    
-
+```
+```
 ./builder.exe tests/test.exe 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef 0123456789abcdef0123456789abcdef0123456789abcdef
 
 Checking input arguments...
@@ -78,18 +127,23 @@ Adding encrypted resource to final.exe...
 Added encrypted resources.
 
 Packing completed successfully! Output file: final.exe
-
-PS C:\Users\home\Documents\PROJECT\runtime-crypter> ./final.exe   
+```
+```
+> ./final.exe   
 
 Hello World
 
 ENCRYPTEEEEEEEEEEEEEEEEEEEEEEED
 
-PS C:\Users\home\Documents\PROJECT\runtime-crypter> 
-
 ```
 ---
 
-If you like this all, please - star my repository and also give me feedback if you have some.
+This application is planned as a solution to protect your software using advanced technologies such as polymorphism, anti-debugging mechanisms, anti-VM  and more.
+
+The project is still under development and contributions are very welcome.
+
+A comprehensive Wiki and documentation will also be added to explain the reasoning behind specific design choices, as well as to provide in-depth technical details for those interested in how everything works under the hood.
+
+**If you like this all, please - star my repository and also give me feedback if you have some.**
 
 @Arrbat
