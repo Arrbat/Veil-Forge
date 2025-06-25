@@ -15,7 +15,7 @@ This project is also **not guaranteed to be cryptographically and overall secure
 ## How It Works
 
 In short:  
-App encrypts a .exe file (dll not supported) and embed it into a precompiled stub.  
+App encrypts a .exe file (dll not supported) and embed it into a precompiled unpacker (stub).  
 The stub contains logic to decrypt and execute the payload at runtime.  
 
 As a result, it becomes:
@@ -29,9 +29,9 @@ You will need the `x86_64-w64-mingw32-gcc` cross-compiler installed.
 
 > ❌ There is no support for 32-bit systems or non-Windows operating systems.
 
-To build the stub, run:
+To build everything automatically, run:
 
-```bash
+```console
 ./build.bat
 ```
 
@@ -39,14 +39,14 @@ To build the stub, run:
 
 Usage:
 
-```
-./builder.exe your.exe KEY64_IN_HEX NONCE24_IN_HEX
+```console
+./packer.exe your.exe KEY64_IN_HEX NONCE24_IN_HEX
 ```
 
 Example with test file:
 
-```
-./builder.exe tests/test.exe  0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef 0123456789abcdef0123456789abcdef0123456789abcdef
+```console
+./packer.exe hello_world.exe  0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef 0123456789abcdef0123456789abcdef0123456789abcdef
 ```
 
 A key and nonce must be provided by the user. Without both, the final application will not run.
@@ -64,6 +64,8 @@ The project uses the following algorithms:
     - SHA-256
     
     - HKDF (HMAC-based key derivation)
+
+    - Process Hollowing
     
 
 Limitations:
@@ -94,13 +96,14 @@ Limitations:
 # Testing Notes
 Project was tested, compiled and run on Windows 11 (v.23H2), with CPU from AMD64.
 
-If everything is okay you should see something like that (example with test.exe):
+If everything is okay you should see something like that (example with hello_world.exe):
 
-```
+```console
 ./build.bat                    
 ```
-```
-./builder.exe tests/test.exe 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef 0123456789abcdef0123456789abcdef0123456789abcdef
+
+```console
+./packer.exe hello_world.exe  0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef 0123456789abcdef0123456789abcdef0123456789abcdef
 
 Checking input arguments...
 
@@ -128,12 +131,12 @@ Added encrypted resources.
 
 Packing completed successfully! Output file: final.exe
 ```
+
+```console
+./final.exe
 ```
-> ./final.exe   
+![image](https://github.com/user-attachments/assets/4c5cc9d9-8b1a-47ab-8dc3-f4a4c7026c61)
 
-
-
-```
 ---
 
 The project is still under development and contributions are very welcome.
