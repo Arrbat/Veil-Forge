@@ -10,12 +10,12 @@
 **THIS PROJECT WAS NOT CREATED FOR MALWARE DEVELOPMENT.** 
 It is intended solely for **legal** and/or **educational** purposes.   The author does **not** condone or support any illegal usage, including but not limited to the creation, distribution, or execution of malicious software.   **Use this tool responsibly and only in environments where you have explicit permission to do so.** 
 
-This project is also **not guaranteed to be cryptographically secure**. It was created as a demonstration of programming and reverse engineering skills. However, if this tool can help someone without violating the laws of their country — that would be appreciated.
+This project is also **not guaranteed to be cryptographically and overall secure**. It was created as a demonstration of programming and reverse engineering skills. However, if this tool can help someone without violating the laws of their country — that would be appreciated.
 
 ## How It Works
 
 In short:  
-App encrypts a PE file (e.g. `.exe`) and embed it into a precompiled stub.  
+App encrypts a .exe file (dll not supported) and embed it into a precompiled stub.  
 The stub contains logic to decrypt and execute the payload at runtime.  
 
 As a result, it becomes:
@@ -78,7 +78,7 @@ Limitations:
 
     Contains only a single-line anti-debugging technique
 
-    AV software (like Windows Defender) will almost certainly detect the stub as a trojan
+    AV software (like Windows Defender) will almost certainly detect the final exe as a trojan
 
     ⚠️ Antivirus software may flag or delete the generated executable.
     You must manually allow the file if testing in Windows. 
@@ -131,14 +131,10 @@ Packing completed successfully! Output file: final.exe
 ```
 > ./final.exe   
 
-Hello World
 
-ENCRYPTEEEEEEEEEEEEEEEEEEEEEEED
 
 ```
 ---
-
-This application is planned as a solution to protect your software using advanced technologies such as polymorphism, anti-debugging mechanisms, anti-VM  and more.
 
 The project is still under development and contributions are very welcome.
 

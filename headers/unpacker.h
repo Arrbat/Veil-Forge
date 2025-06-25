@@ -69,11 +69,6 @@ typedef struct
 static unsigned char* GetResource(int resourceId, char* resourceType, unsigned long* dwSize);
 
 /**
- * @brief Performs process hollowing with the decrypted payload.
- */
-static int ProcessHollowing(uint8_t* decrypted, unsigned long payloadSize);
-
-/**
  * @brief Securely cleans up resources and sensitive data.
  */
 static void CleanupResources(Resources* res, CryptoContext* crypto, uint8_t* decrypted, unsigned long payloadSize);
