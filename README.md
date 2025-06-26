@@ -1,8 +1,5 @@
 ![Veil-Forge-Logo-Main](https://github.com/user-attachments/assets/b1bee8bc-b4f7-4933-a057-fbcd09b11b9b)
 
-
-
-
 # Veil-Forge
 
 ## Disclaimer
@@ -89,18 +86,21 @@ Limitations:
 ![453845503-0ab575b2-6e6f-4b7e-b56a-e1be0db81131](https://github.com/user-attachments/assets/d0080941-d532-4ca8-a13c-06eedca9511e)
 
 
-
-
-
-
-
 # Testing Notes
 Project was tested, compiled and run on Windows 11 (v.23H2), with CPU from AMD64.
 
 If everything is okay you should see something like that (example with hello_world.exe):
 
 ```console
-./build.bat                    
+./build.bat
+
+Note that building requires x86_64-w64-mingw32-gcc compiler and supports only Windows 64-bit.
+
+UNPACKER BUILDING SUCCESS
+
+PACKER BUILDING SUCCESS
+
+
 ```
 
 ```console

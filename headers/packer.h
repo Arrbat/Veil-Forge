@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <windows.h>
+#include "crypto/hashing/sha.h"
+#include "crypto/chacha20-poly1305/chacha20poly1305.h"
 
 #define PAYLOAD_RESOURCE_ID 132
 #define KEY_RESOURCE_ID 133
