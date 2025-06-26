@@ -81,7 +81,8 @@ Limitations:
     AV software (like Windows Defender) will almost certainly detect the final exe as a trojan
 
     ⚠️ Antivirus software may flag or delete the generated executable.
-    You must manually allow the file if testing in Windows. 
+    F.e. Windows Defender sometimes thinks that final executable file is suspicious at least
+    and describes it as the trojan and tries to delete it.
 
 ![453845503-0ab575b2-6e6f-4b7e-b56a-e1be0db81131](https://github.com/user-attachments/assets/d0080941-d532-4ca8-a13c-06eedca9511e)
 
