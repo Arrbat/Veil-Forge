@@ -75,7 +75,7 @@ Limitations:
 
     Stub does not use any obfuscation
 
-    Contains only a single-line anti-debugging technique
+    Incompleted anti-debugger
 
     AV software (like Windows Defender) will almost certainly detect the final exe as a trojan
 

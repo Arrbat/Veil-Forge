@@ -19,17 +19,17 @@ typedef NTSTATUS (NTAPI* TNtQueryInformationProcess)
 // ----------- DEBUG FLAGS -----------
 
 /**
- * @brief By using API call isDebuggerPresent() and CheckRemoteDebuggerPresent() checks if debugger is present
+ * @brief Checks BeingDebugged flag in PEB structure and checks if there is debugger attached to this process.
  */
 int _IsDebuggerPresent();
 
 /**
- * @brief Checks DWORD value in class ProcessDebugPort, if equals to -1 then Debugger is present
+ * @brief Checks if the current process is being debugged by querying the ProcessDebugPort.
  */
 int _ProcessDebugPort();
 
 /**
- * Checks the field NoDebugInherit of kernel structure EPROCESS. If the return valuse is 0 - debugger is present
+ * Checks the field NoDebugInherit of kernel structure EPROCESS. If the return valuse is 0 - debugger is present.
  */
 int _ProcessDebugFlags();
 
