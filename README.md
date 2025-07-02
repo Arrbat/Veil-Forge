@@ -96,6 +96,8 @@ If everything is okay you should see something like that (example with hello_wor
 
 Note that building requires x86_64-w64-mingw32-gcc compiler and supports only Windows 64-bit.
 
+Building with default warning settings.  ./build.bat WARN_ALL  for more information of building.
+
 UNPACKER BUILDING SUCCESS
 
 PACKER BUILDING SUCCESS
@@ -112,7 +114,7 @@ Arguments are valid.
 
 Reading input file...
 
-Read file succesfully.
+Read file successfully.
 
 Validate input file as x64 PE...
 
@@ -120,17 +122,20 @@ File is valid x64 PE.
 
 Encrypting data...
 
-Encryption ended successfully
+Encryption ended successfully.
 
 Copying stub template...
 
-Copying stub template ended succesfully
+Copying stub template ended successfully.
+
+HKDF: reset=0 input=0 result=0. HKDF ended as expected.
 
 Adding encrypted resource to final.exe...
 
 Added encrypted resources.
 
-Packing completed successfully! Output file: final.exe
+Packing completed successfully! Output file: final.exe.
+
 ```
 
 ```console

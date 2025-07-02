@@ -6,6 +6,8 @@
 #include <windows.h>
 #include <winternl.h> 
 
+#define THRESHOLD_30000 30000
+
 typedef NTSTATUS (NTAPI* TNtQueryInformationProcess)
 (
     IN HANDLE ProcessHandle,
@@ -33,9 +35,17 @@ int _ProcessDebugPort();
  */
 int _ProcessDebugFlags();
 
-// ----------- EXCEPTIONS -----------
-
 // ----------- TIMING -----------
+
+/**
+ * @brief Start time measuring
+ */
+DWORD64 BeginDetectRDTSCBasedDelay();
+
+/**
+ * @brief End time measuring
+ */
+bool EndDetectRDTSCBasedDelay(DWORD64 qwNativeElapsed, DWORD64 qwStart);
 
 // ----------- PROCESS MEMORY -----------
 

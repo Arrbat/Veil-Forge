@@ -68,7 +68,7 @@ static int ValidatePE(BuildContext* buildCtx, ConsoleContext* consoleCtx)
     bool is64 = _ntHeader->FileHeader.Machine == IMAGE_FILE_MACHINE_AMD64;
     if (!is64)
     {
-        consoleCtx->errorCode = PrintMessage(consoleCtx->hCon, "Error. Input file is not a valid x64 PE", 4, ERROR_BAD_FORMAT);
+        consoleCtx->errorCode = PrintMessage(consoleCtx->hCon, "Error. Input file is not a valid x64 PE.", 4, ERROR_BAD_FORMAT);
         return 0;
     }
     
@@ -156,7 +156,7 @@ static int UpdateResources(BuildContext* buildCtx, CryptoContext* cryptoCtx, Con
 
     if (!EndUpdateResource(buildCtx->hUpdateRes, FALSE))
     {
-        consoleCtx->errorCode = PrintMessage(consoleCtx->hCon, "Error: Could not finalize resource update", 4, 1);
+        consoleCtx->errorCode = PrintMessage(consoleCtx->hCon, "Error: Could not finalize resource update.", 4, 1);
         return 0;
     }
 
@@ -229,7 +229,7 @@ int main(int argc, char* argv[])
     chacha20poly1305_ctx encCtx;
     xchacha20poly1305_init(&encCtx, cryptoCtx.key, cryptoCtx.nonce);
     chacha20poly1305_encrypt(&encCtx, (uint8_t*)buildCtx.fileBuff, buildCtx.encryptedPayload, buildCtx.fileLen);
-    PrintMessage(consoleCtx.hCon, "Encryption ended successfully", 2, 0);
+    PrintMessage(consoleCtx.hCon, "Encryption ended successfully.", 2, 0);
 
     // Copy stub template
     PrintMessage(consoleCtx.hCon, "Copying stub template... ", 7, 0);
@@ -237,7 +237,7 @@ int main(int argc, char* argv[])
         consoleCtx.errorCode = PrintMessage(consoleCtx.hCon, "Error: Could not copy stub.exe to final.exe. Make sure stub.exe exists!", 4, ERROR_FILE_NOT_FOUND);
         goto cleanup;
     }
-    PrintMessage(consoleCtx.hCon, "Copying stub template ended successfully", 2, 0);
+    PrintMessage(consoleCtx.hCon, "Copying stub template ended successfully.", 2, 0);
 
     // Compute hash and derive keys
     SHA256Context shaCTX;
@@ -256,7 +256,7 @@ int main(int argc, char* argv[])
                     (int)strlen("obfuscation-context"), cryptoCtx.okm, OKM_SIZE);
 
     char debugMsg[128];
-    snprintf(debugMsg, sizeof(debugMsg), "HKDF: reset=%d input=%d result=%d", hkdf_r1, hkdf_r2, hkdf_r3);
+    snprintf(debugMsg, sizeof(debugMsg), "HKDF: reset=%d input=%d result=%d. HKDF ended as expected.", hkdf_r1, hkdf_r2, hkdf_r3);
     PrintMessage(consoleCtx.hCon, debugMsg, 6, 0);
 
     if (hkdf_r1 != 0 || hkdf_r2 != 0 || hkdf_r3 != 0)
@@ -277,7 +277,7 @@ int main(int argc, char* argv[])
         goto cleanup;
     }
 
-    PrintMessage(consoleCtx.hCon, "Packing completed successfully! Output file: final.exe", 10, 0);
+    PrintMessage(consoleCtx.hCon, "Packing completed successfully! Output file: final.exe.", 10, 0);
     CleanupResources(&buildCtx, &cryptoCtx);
     return 0;
 
