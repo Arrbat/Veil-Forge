@@ -13,12 +13,14 @@ int _IsDebuggerPresent()
     {
         ExitProcess(1);
     }
+
+    return 0;
 }
 
 int _ProcessDebugPort()
 {
     HMODULE hNtdll = LoadLibrary("ntdll.dll");
-    auto pfnNtQueryInformationProcess = (TNtQueryInformationProcess)GetProcAddress(hNtdll, "NtQueryInformationProcess");
+    auto pfnNtQueryInformationProcess = (TNtQueryInformationProcess)(void*)GetProcAddress(hNtdll, "NtQueryInformationProcess");
 
     if (pfnNtQueryInformationProcess)
     {
@@ -37,6 +39,8 @@ int _ProcessDebugPort()
         }
 
     }
+    
+    return 0;
 }
 
 int _ProcessDebugFlags()
@@ -44,7 +48,7 @@ int _ProcessDebugFlags()
     HMODULE hNtdll = LoadLibrary("ntdll.dll");
     if (hNtdll)
     {
-        auto pfnNtQueryInformationProcess = (TNtQueryInformationProcess)GetProcAddress(hNtdll, "NtQueryInformationProcess");
+        auto pfnNtQueryInformationProcess = (TNtQueryInformationProcess)(void*)GetProcAddress(hNtdll, "NtQueryInformationProcess");
 
         if (pfnNtQueryInformationProcess)
         {
@@ -60,8 +64,10 @@ int _ProcessDebugFlags()
 
             if (NT_SUCCESS(status) && (0 == dwProcessDebugFlags))
             {
-                ExitProcess(-1);
+                ExitProcess(1);
             }
         }
     }
+
+    return 0;
 }

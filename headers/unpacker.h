@@ -62,20 +62,4 @@ typedef struct
     char currentFilePath[MAX_PATH];
 }   ProcessContext;
 
-
-/**
- * @brief Extracts an embedded resource from the executable.
- */
-static unsigned char* GetResource(int resourceId, char* resourceType, unsigned long* dwSize);
-
-/**
- * @brief Add junk-code
- */
-static int AddJunkCode();
-
-/**
- * @brief Securely cleans up resources and sensitive data.
- */
-static void CleanupResources(Resources* res, CryptoContext* crypto, uint8_t* decrypted, unsigned long payloadSize);
-
 #endif /* UNPACKER_H */

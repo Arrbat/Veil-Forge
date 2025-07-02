@@ -63,6 +63,8 @@ The project uses the following algorithms:
     - HKDF (HMAC-based key derivation)
 
     - Process Hollowing
+
+    - Anti-debugger (incompleted yet)
     
 
 Limitations:
@@ -74,8 +76,6 @@ Limitations:
     No anti-VM or sandbox detection
 
     Stub does not use any obfuscation
-
-    Incompleted anti-debugger
 
     AV software (like Windows Defender) will almost certainly detect the final exe as a trojan
 

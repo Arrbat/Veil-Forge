@@ -15,7 +15,7 @@ void custom_GetModuleFileNameA(char* out, DWORD size)
     out[len] = 0;
 }
 
-int ProcessHollowing(uint8_t* decrypted, unsigned long payloadSize)
+int ProcessHollowing(uint8_t* decrypted)
 {
     ProcessContext processCtx = {0};
     processCtx.pe = decrypted;

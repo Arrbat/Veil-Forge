@@ -14,6 +14,6 @@ void custom_GetModuleFileNameA(char* out, DWORD size);
 /**
  * @brief Performs process hollowing with the decrypted payload.
  */
-int ProcessHollowing(uint8_t* decrypted, unsigned long payloadSize);
+int ProcessHollowing(uint8_t* decrypted);
 
 #endif /* INJECTION_H */
