@@ -232,12 +232,12 @@ int main(int argc, char* argv[])
     PrintMessage(consoleCtx.hCon, "Encryption ended successfully.", 2, 0);
 
     // Copy stub template
-    PrintMessage(consoleCtx.hCon, "Copying stub template... ", 7, 0);
+    PrintMessage(consoleCtx.hCon, "Copying unpacker (stub) template... ", 7, 0);
     if (!CopyFileA("unpacker.exe", "final.exe", FALSE)) {
-        consoleCtx.errorCode = PrintMessage(consoleCtx.hCon, "Error: Could not copy stub.exe to final.exe. Make sure stub.exe exists!", 4, ERROR_FILE_NOT_FOUND);
+        consoleCtx.errorCode = PrintMessage(consoleCtx.hCon, "Error: Could not copy unpacker.exe to final.exe. Make sure unpacker.exe exists!", 4, ERROR_FILE_NOT_FOUND);
         goto cleanup;
     }
-    PrintMessage(consoleCtx.hCon, "Copying stub template ended successfully.", 2, 0);
+    PrintMessage(consoleCtx.hCon, "Copying unpacker (stub) template ended successfully.", 2, 0);
 
     // Compute hash and derive keys
     SHA256Context shaCTX;

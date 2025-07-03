@@ -64,6 +64,8 @@ static int AddJunkCode()
         "mov $0, %%rcx\n\t"
         "cmp $0, %%rcx\n\t"
         "jne CODE\n\t"
+        "bswap %%rcx\n\t"
+        "inc %%rax\n\t"
         "nop\n\t"
 
         "CODE:\n\t"
@@ -119,6 +121,8 @@ int main()
     SHA256Input(&shaCtx, res.payload, res.payloadSize);
     SHA256Result(&shaCtx, crypto.hash);
     memcpy(crypto.salt, crypto.hash, SALT_SIZE);
+
+    PatchDbgBreakPoint();
 
     // HKDF key derivation
     HKDFContext hkdfCTX;

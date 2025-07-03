@@ -49,6 +49,11 @@ bool EndDetectRDTSCBasedDelay(DWORD64 qwNativeElapsed, DWORD64 qwStart);
 
 // ----------- PROCESS MEMORY -----------
 
+/**
+ * @brief Erases breakpoint inside ntdll!DbgBreakPoint()
+ */
+int PatchDbgBreakPoint();
+
 // ----------- ASSEMBLY INSTRUCTIONS -----------
 
 // ----------- INTERACTIVE CHECKS -----------
