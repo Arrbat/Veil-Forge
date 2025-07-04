@@ -21,10 +21,7 @@ x86_64-w64-mingw32-gcc %BASE_FLAGS% %WARN_FLAGS% ^
   src/injection.c ^
   src/anti_debug/timing.c ^
   src/anti_debug/process_memory.c ^
-  src/anti_debug/assembly_instructions.c ^
   src/anti_debug/debug_flags.c ^
-  src/anti_debug/interactive_checks.c ^
-  src/anti_debug/misc.c ^
   crypto/chacha20-poly1305/chacha20poly1305.c ^
   crypto/chacha20-poly1305/chacha_merged.c ^
   crypto/chacha20-poly1305/poly1305-donna.c ^

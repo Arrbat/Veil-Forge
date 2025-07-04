@@ -64,7 +64,7 @@ The project uses the following algorithms:
 
     - Process Hollowing
 
-    - Anti-debugger (incompleted yet)
+    - Anti-debug techniques
     
 
 Limitations:
@@ -145,9 +145,9 @@ Packing completed successfully! Output file: final.exe.
 
 ---
 
-The project is still under development and contributions are very welcome.
+The project is completed and demonstrates skills in crypto/reverse engineering/software development.
 
-A comprehensive Wiki and documentation will also be added to explain the reasoning behind specific design choices, as well as to provide in-depth technical details for those interested in how everything works under the hood.
+Some questions and decisions are desctibed at Wiki page of this repository.
 
 **If you like this all, please - star my repository and also give me feedback if you have some.**
 

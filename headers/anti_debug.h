@@ -54,11 +54,4 @@ bool EndDetectRDTSCBasedDelay(DWORD64 qwNativeElapsed, DWORD64 qwStart);
  */
 int PatchDbgBreakPoint();
 
-// ----------- ASSEMBLY INSTRUCTIONS -----------
-
-// ----------- INTERACTIVE CHECKS -----------
-
-// ----------- MISC -----------
-
-
 #endif /* ANTI_DEBUG_H */
