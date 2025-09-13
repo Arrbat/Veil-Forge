@@ -2,6 +2,9 @@
 
 # Veil-Forge
 
+## TL;DR
+PE packer in C implementing ChaCha20-Poly1305, HKDF and SHA256 with anti-debug checks and process hollowing. Designed to significantly improve technical sacurity of applications. No malicious binaries included.
+
 ## Disclaimer
 
 **THIS PROJECT WAS NOT CREATED FOR MALWARE DEVELOPMENT.** 
