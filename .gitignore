@@ -3,3 +3,5 @@ unpacker.exe
 packer.exe
 tests.exe
 devnotes.txt
+
+build/

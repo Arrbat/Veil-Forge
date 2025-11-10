@@ -82,6 +82,7 @@ static int AddJunkCode()
     return 0;
 }
 
+#ifndef TESTING_MODE
 int main()
 {
     ShowWindow(GetConsoleWindow(), SW_HIDE);
@@ -168,3 +169,4 @@ cleanup:
     CleanupResources(&crypto, decrypted, res.payloadSize);
     return 1;
 }
+#endif
