@@ -3,7 +3,7 @@
 # Veil-Forge
 
 ## TL;DR
-PE packer in C implementing ChaCha20-Poly1305, HKDF and SHA256 with anti-debug checks and process hollowing. Designed to significantly improve technical sacurity of applications. No malicious binaries included.
+PE packer in C implementing ChaCha20-Poly1305, HKDF and SHA256 with anti-debug checks and process hollowing. Designed to significantly improve technical security of applications. Not for malicious purposes.
 
 ## Disclaimer
 
@@ -19,8 +19,10 @@ App encrypts a .exe file (dll not supported) and embed it into a precompiled unp
 The stub contains logic to decrypt and execute the payload at runtime.  
 
 As a result, it becomes:
-- **Impossible to statically analyze** the original `.exe` without decryption.
+- **Difficult to statically analyze** the original `.exe` without decryption.
 - **Difficult to debug and dynamically analyze**, due to runtime unpacking.
+
+Such measures may be applied in security solutions, anti-cheats engines or just for protecting software from cracking.
 
 
 ## Building
@@ -51,10 +53,6 @@ Example with test file:
 
 A key and nonce must be provided by the user. Without both, the final application will not run.
 Use a secure method (such as a cryptographic key generator, you may find it on the web services) to generate a 64-byte key and 24-byte nonce, in hexadecimal format. Never reuse keys or nonces across different builds.
-
-
-
-
 
 ## Technical Notes
 The project uses the following algorithms:
@@ -92,6 +90,8 @@ Limitations:
 # Testing Notes
 Project was tested, compiled and run on Windows 11 (v.23H2), with CPU from AMD64.
 
+Also, there were writen unit-tests for packer and unpacker functions. Run compiled TESTS.exe if you want to auto-test application.
+
 If everything is okay you should see something like that (example with hello_world.exe):
 
 ```console
@@ -99,11 +99,17 @@ If everything is okay you should see something like that (example with hello_wor
 
 Note that building requires x86_64-w64-mingw32-gcc compiler and supports only Windows 64-bit.
 
+tests.exe will be builded with all unit tests included, so that you can check if app works as expected by running ./tests.exe .
+
 Building with default warning settings.  ./build.bat WARN_ALL  for more information of building.
 
 UNPACKER BUILDING SUCCESS
 
 PACKER BUILDING SUCCESS
+
+TESTS_PACKER BUILD SUCCESS
+
+TESTS_UNPACKER BUILD SUCCESS
 
 
 ```
@@ -148,7 +154,7 @@ Packing completed successfully! Output file: final.exe.
 
 ---
 
-The project is completed and demonstrates skills in crypto/reverse engineering/software development.
+The project is completed and demonstrates skills in crypto/reverse engineering/software development/Quality Assurance.
 
 Some questions and decisions are desctibed at Wiki page of this repository.
 
