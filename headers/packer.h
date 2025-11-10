@@ -54,4 +54,10 @@ typedef struct
     int errorCode;
 }   ConsoleContext;
 
+#ifdef TESTING_MODE
+int PrintMessage(HANDLE hCon, const char* text, int consoleColorCode, int errorCode);
+#else
+static int PrintMessage(HANDLE hCon, const char* text, int consoleColorCode, int errorCode);
+#endif
+
 #endif /* PACKER_H */

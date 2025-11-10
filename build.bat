@@ -1,6 +1,7 @@
 @echo off
 
-echo Note that building requires x86_64-w64-mingw32-gcc compiler and supports only Windows 64-bit.
+echo Note that building requires x86_64-w64-mingw32-gcc compiler and supports only Windows 64-bit. 
+echo tests.exe will be builded with all unit tests included, so that you can check if app works as expected by running ./tests.exe . 
 
 :: Default compiler flags
 set "BASE_FLAGS=-I. -Icrypto/hashing -Icrypto/chacha20-poly1305 -DPOLY1305_16BIT"
@@ -55,4 +56,13 @@ x86_64-w64-mingw32-gcc %BASE_FLAGS% %WARN_FLAGS% ^
     echo PACKER BUILDING SUCCESS
   ) || (
     echo PACKER BUILDING FAILED
+  )
+
+:: ---------- Compile tests ----------
+x86_64-w64-mingw32-gcc %BASE_FLAGS% %WARN_FLAGS% -DTESTING_MODE ^
+  tests/test_packer.c ^
+  -o tests.exe && (
+    echo TESTS BUILD SUCCESS
+  ) || (
+    echo TESTS BUILD FAILED
   )

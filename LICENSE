@@ -22,7 +22,9 @@ SOFTWARE.
 
 ---
 
-Portions of this project are derived from Will Glozer - (https://github.com/wg/c20p1305?tab=MIT-1-ov-file) , who uses MIT license
+Portions of this project are derived from Will Glozer - (https://github.com/wg/c20p1305?tab=MIT-1-ov-file) - MIT license
+
+Additionally, project uses MinUnit testing framework - (https://github.com/siu/minunit) - MIT license
 
 ---
 

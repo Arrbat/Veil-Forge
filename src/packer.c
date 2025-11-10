@@ -8,7 +8,11 @@
 /**
  * @brief Print a message to the console with color and error code.
  */
+#ifdef TESTING_MODE
+int PrintMessage(HANDLE hCon, const char* text, int consoleColorCode, int errorCode)
+#else
 static int PrintMessage(HANDLE hCon, const char* text, int consoleColorCode, int errorCode)
+#endif
 {
     SetConsoleTextAttribute(hCon, consoleColorCode);
     fprintf(stderr, "%s\n", text);
@@ -164,6 +168,8 @@ static int UpdateResources(BuildContext* buildCtx, CryptoContext* cryptoCtx, Con
     return 1;
 }
 
+
+#ifndef TESTING_MODE
 int main(int argc, char* argv[])
 {
     ConsoleContext consoleCtx = 
@@ -285,3 +291,4 @@ cleanup:
     CleanupResources(&buildCtx, &cryptoCtx);
     return consoleCtx.errorCode;
 }
+#endif
